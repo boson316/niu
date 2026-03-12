@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>年化報酬率計算機（複利／IRR）</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      background: #f5f6fa;
+      color: #2c3e50;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #1a202c; }
+    .subtitle { color: #718096; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .stage-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .stage-card h2 {
+      font-size: 1rem;
+      margin: 0 0 0.75rem 0;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .stage-card h2 .num {
+      background: #4299e1;
+      color: #fff;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+    .mode-row { margin-bottom: 1rem; }
+    .mode-row label { font-size: 0.85rem; color: #4a5568; margin-right: 0.5rem; }
+    .mode-row select {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      min-width: 180px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.75rem 1rem;
+      align-items: end;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field label { font-size: 0.8rem; color: #718096; }
+    .field input, .field select {
+      padding: 0.5rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .field input:disabled { background: #edf2f7; color: #2d3748; }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: #4299e1;
+      box-shadow: 0 0 0 2px rgba(66,153,225,0.2);
+    }
+    .field.period-inline { display: flex; flex-direction: row; align-items: baseline; gap: 0.5rem; }
+    .field.period-inline input { flex: 1; min-width: 0; }
+    .field.period-inline select { flex: 0 0 auto; }
+    .result-row {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .result-row .final-amount { font-size: 1.1rem; font-weight: 700; color: #2b6cb0; }
+    .result-row .final-amount.empty { color: #a0aec0; font-weight: normal; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn-add { background: #4299e1; color: #fff; }
+    .btn-add:hover { background: #3182ce; }
+    .btn-remove { background: #fc8181; color: #fff; }
+    .btn-remove:hover { background: #e53e3e; }
+    .btn-recalc { background: #48bb78; color: #fff; margin-left: auto; }
+    .btn-recalc:hover { background: #38a169; }
+    .toolbar { margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .summary-table th, .summary-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    .summary-table th { background: #edf2f7; font-size: 0.8rem; color: #4a5568; }
+    .summary-table td { font-size: 0.9rem; }
+    .summary-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .summary-table tr:last-child td { border-bottom: none; }
+    .payment-type.withdraw .payment-label { color: #c53030; }
+  </style>
+</head>
+<body>
+  <h1>年化報酬率計算機（複利／IRR）</h1>
+  <p class="subtitle">可算：最終金額、年化報酬率、所需本金、所需時間、定期定額。參考 <a href="https://wisehomemaker.com/annualized-rate-of-return-calculator/" target="_blank" rel="noopener">複利+年化報酬率計算機</a>。支援多階段，上一階段最終金額可帶入下一階段本金。</p>
+
+  <div class="toolbar">
+    <button type="button" class="btn btn-add" id="addStage">＋ 新增階段</button>
+    <button type="button" class="btn btn-recalc" id="recalcAll">重新計算全部</button>
+  </div>
+
+  <div id="stages"></div>
+
+  <table class="summary-table" id="summaryTable" style="display: none;">
+    <thead>
+      <tr>
+        <th>階段</th>
+        <th>計算</th>
+        <th class="num">本金</th>
+        <th>期間</th>
+        <th>定期</th>
+        <th class="num">定額</th>
+        <th class="num">年化報酬率</th>
+        <th class="num">最終金額</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+
+  <script>
+    const CALC_MODES = [
+      { value: 'fv', label: '算最終金額（本利和）' },
+      { value: 'rate', label: '算年化報酬率（IRR）' },
+      { value: 'principal', label: '算本金' },
+      { value: 'time', label: '算所需時間' },
+      { value: 'pmt', label: '算定期定額投入' }
+    ];
+
+    const STAGE_DEFAULTS = {
+      principal: 100000,
+      periodAmount: 10,
+      periodUnit: 'year',
+      frequency: 'monthly',
+      paymentType: 'contribute',
+      payment: 5000,
+      rate: 6,
+      finalValue: 1000000
+    };
+
+    const FREQ_OPTIONS = [
+      { value: 'yearly', label: '每一年', periodsPerYear: 1 },
+      { value: 'semi', label: '每半年', periodsPerYear: 2 },
+      { value: 'quarterly', label: '每一季', periodsPerYear: 4 },
+      { value: 'monthly', label: '每個月', periodsPerYear: 12 }
+    ];
+
+    function getTotalPeriods(periodAmount, periodUnit, frequency) {
+      const k = FREQ_OPTIONS.find(f => f.value === frequency).periodsPerYear;
+      if (periodUnit === 'year') return periodAmount * k;
+      const months = periodAmount;
+      if (k === 1) return months / 12;
+      if (k === 2) return months / 6;
+      if (k === 4) return months / 3;
+      return months;
+    }
+
+    function periodsToYearsOrMonths(n, frequency) {
+      const k = FREQ_OPTIONS.find(f => f.value === frequency).periodsPerYear;
+      const years = n / k;
+      if (years >= 1 || k === 1) return { value: Math.round(years * 10) / 10, unit: 'year' };
+      return { value: Math.round(n * (12 / k)), unit: 'month' };
+    }
+
+    function futureValue(principal, annualRate, totalPeriods, payment, periodsPerYear, isWithdrawal) {
+      const r = annualRate / 100;
+      const rPer = r / periodsPerYear;
+      const pmt = isWithdrawal ? -(parseFloat(payment) || 0) : (parseFloat(payment) || 0);
+      if (Math.abs(rPer) < 1e-10) return principal + pmt * totalPeriods;
+      const fv = principal * Math.pow(1 + rPer, totalPeriods) + pmt * (Math.pow(1 + rPer, totalPeriods) - 1) / rPer;
+      return fv;
+    }
+
+    function solvePrincipal(fv, annualRate, totalPeriods, payment, periodsPerYear, isWithdrawal) {
+      const r = annualRate / 100;
+      const rPer = r / periodsPerYear;
+      const pmt = isWithdrawal ? -(parseFloat(payment) || 0) : (parseFloat(payment) || 0);
+      if (Math.abs(rPer) < 1e-10) return (fv - pmt * totalPeriods);
+      const x = Math.pow(1 + rPer, totalPeriods);
+      const p = (fv - pmt * (x - 1) / rPer) / x;
+      return p;
+    }
+
+    function solvePMT(principal, fv, annualRate, totalPeriods, periodsPerYear, isWithdrawal) {
+      const r = annualRate / 100;
+      const rPer = r / periodsPerYear;
+      const x = Math.pow(1 + rPer, totalPeriods);
+      if (Math.abs(x - 1) < 1e-10) return (fv - principal) / totalPeriods;
+      if (isWithdrawal) {
+        const pmt = (principal * x - fv) * rPer / (x - 1);
+        return pmt;
+      }
+      const pmt = (fv - principal * x) * rPer / (x - 1);
+      return pmt;
+    }
+
+    function solvePeriods(principal, fv, annualRate, payment, periodsPerYear, isWithdrawal) {
+      const r = annualRate / 100;
+      const rPer = r / periodsPerYear;
+      const pmt = isWithdrawal ? -(parseFloat(payment) || 0) : (parseFloat(payment) || 0);
+      if (Math.abs(rPer) < 1e-10) {
+        if (Math.abs(pmt) < 1e-10) return null;
+        return (fv - principal) / pmt;
+      }
+      const denom = principal * rPer + pmt;
+      if (Math.abs(denom) < 1e-10) return null;
+      const num = fv * rPer + pmt;
+      const x = num / denom;
+      if (x <= 0) return null;
+      const n = Math.log(x) / Math.log(1 + rPer);
+      return n;
+    }
+
+    function solveRate(principal, fv, totalPeriods, payment, periodsPerYear, isWithdrawal, maxIter) {
+      maxIter = maxIter || 100;
+      let low = 0.0001, high = 3;
+      const pmt = parseFloat(payment) || 0;
+      for (let i = 0; i < maxIter; i++) {
+        const mid = (low + high) / 2;
+        const fvMid = futureValue(principal, mid * 100, totalPeriods, pmt, periodsPerYear, isWithdrawal);
+        if (Math.abs(fvMid - fv) < 0.01) return mid * 100;
+        if (fvMid < fv) low = mid;
+        else high = mid;
+      }
+      return (low + high) / 2 * 100;
+    }
+
+    function formatNum(x) {
+      if (x == null || isNaN(x)) return '－';
+      return Math.round(x).toLocaleString('zh-TW');
+    }
+
+    function formatRate(x) {
+      if (x == null || isNaN(x)) return '－';
+      return (Math.round(x * 100) / 100) + '%';
+    }
+
+    let stageCount = 0;
+
+    function createStageCard(initialPrincipal) {
+      stageCount += 1;
+      const id = stageCount;
+      const card = document.createElement('div');
+      card.className = 'stage-card';
+      card.dataset.stageId = id;
+      const prevFinal = initialPrincipal != null ? Math.round(initialPrincipal) : STAGE_DEFAULTS.principal;
+      const freqOptionsHtml = FREQ_OPTIONS.map(f => `<option value="${f.value}">${f.label}</option>`).join('');
+      const modeOptionsHtml = CALC_MODES.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+      card.innerHTML = `
+        <h2><span class="num">${id}</span> 階段 ${id}</h2>
+        <div class="mode-row">
+          <label>計算目標：</label>
+          <select data-field="calcMode">
+            ${modeOptionsHtml}
+          </select>
+        </div>
+        <div class="grid">
+          <div class="field" data-field-wrap="principal">
+            <label>最初投入資金（本金）</label>
+            <input type="number" min="0" step="1000" placeholder="可留空" data-field="principal" value="${prevFinal}">
+          </div>
+          <div class="field" data-field-wrap="period">
+            <label>投資期間</label>
+            <div class="field period-inline">
+              <input type="number" min="0.5" step="0.5" data-field="periodAmount" value="${STAGE_DEFAULTS.periodAmount}" placeholder="數量">
+              <select data-field="periodUnit">
+                <option value="year">年</option>
+                <option value="month">月</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>定期</label>
+            <select data-field="frequency">
+              ${freqOptionsHtml}
+            </select>
+          </div>
+          <div class="field payment-type" data-field-wrap="payment">
+            <label class="payment-label">定額投入</label>
+            <input type="number" min="0" step="1000" placeholder="每期，可留空" data-field="payment" value="${STAGE_DEFAULTS.payment}">
+            <select data-field="paymentType" style="margin-top: 0.35rem;">
+              <option value="contribute">投入</option>
+              <option value="withdraw">領回</option>
+            </select>
+          </div>
+          <div class="field" data-field-wrap="rate">
+            <label>年化報酬率（%）</label>
+            <input type="number" min="-100" step="0.1" placeholder="例：6" data-field="rate" value="${STAGE_DEFAULTS.rate}">
+          </div>
+          <div class="field" data-field-wrap="finalValue">
+            <label>最終金額（目標）</label>
+            <input type="number" min="0" step="1000" placeholder="目標本利和" data-field="finalValue" value="${STAGE_DEFAULTS.finalValue}">
+          </div>
+        </div>
+        <div class="result-row">
+          <span class="final-amount empty" data-result="final">計算結果：－</span>
+          <button type="button" class="btn btn-remove btn-remove-stage">移除階段</button>
+        </div>
+      `;
+
+      const calcModeSelect = card.querySelector('[data-field="calcMode"]');
+      const principalInput = card.querySelector('[data-field="principal"]');
+      const periodAmountInput = card.querySelector('[data-field="periodAmount"]');
+      const periodUnitSelect = card.querySelector('[data-field="periodUnit"]');
+      const frequencySelect = card.querySelector('[data-field="frequency"]');
+      const paymentInput = card.querySelector('[data-field="payment"]');
+      const paymentTypeSelect = card.querySelector('[data-field="paymentType"]');
+      const rateInput = card.querySelector('[data-field="rate"]');
+      const finalValueInput = card.querySelector('[data-field="finalValue"]');
+      const resultEl = card.querySelector('[data-result="final"]');
+      const paymentTypeField = card.querySelector('.payment-type');
+      const paymentLabel = card.querySelector('.payment-label');
+
+      const wrap = (name) => card.querySelector('[data-field-wrap="' + name + '"]');
+      const setFieldState = (fieldName, isResult) => {
+        const w = wrap(fieldName);
+        if (!w) return;
+        const input = w.querySelector('input');
+        if (input) {
+          input.disabled = isResult;
+          input.readOnly = isResult;
+        }
+      };
+
+      function updatePaymentLabel() {
+        const isWithdraw = paymentTypeSelect.value === 'withdraw';
+        paymentLabel.textContent = isWithdraw ? '定額領回' : '定額投入';
+        paymentTypeField.classList.toggle('withdraw', isWithdraw);
+      }
+      paymentTypeSelect.addEventListener('change', updatePaymentLabel);
+      updatePaymentLabel();
+
+      function applyModeUI() {
+        const mode = calcModeSelect.value;
+        ['principal', 'period', 'payment', 'rate', 'finalValue'].forEach(name => setFieldState(name, false));
+        if (mode === 'fv') {
+          setFieldState('finalValue', true);
+          finalValueInput.value = '';
+        } else if (mode === 'rate') setFieldState('rate', true);
+        else if (mode === 'principal') setFieldState('principal', true);
+        else if (mode === 'time') setFieldState('period', true);
+        else if (mode === 'pmt') setFieldState('payment', true);
+      }
+      calcModeSelect.addEventListener('change', () => { applyModeUI(); updateResult(); });
+      applyModeUI();
+
+      function updateResult() {
+        const mode = calcModeSelect.value;
+        const p = parseFloat(principalInput.value) || 0;
+        const periodAmt = parseFloat(periodAmountInput.value);
+        const periodUnit = periodUnitSelect.value;
+        const freq = frequencySelect.value;
+        const pmt = parseFloat(paymentInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        const fvInput = parseFloat(finalValueInput.value);
+        const isWithdrawal = paymentTypeSelect.value === 'withdraw';
+        const periodsPerYear = FREQ_OPTIONS.find(f => f.value === freq).periodsPerYear;
+        const n = getTotalPeriods(periodAmt, periodUnit, freq);
+
+        let resultText = '計算結果：－';
+        let resultValue = null;
+
+        if (mode === 'fv') {
+          if (isNaN(periodAmt) || periodAmt <= 0 || n <= 0) {
+            resultEl.textContent = resultText;
+            resultEl.classList.add('empty');
+            return null;
+          }
+          resultValue = futureValue(p, rate, n, pmt, periodsPerYear, isWithdrawal);
+          resultText = '最終金額：' + formatNum(resultValue);
+          finalValueInput.value = Math.round(resultValue);
+        } else if (mode === 'rate') {
+          const fvTarget = (finalValueInput.value === '' || isNaN(fvInput)) ? 0 : fvInput;
+          if (isNaN(periodAmt) || periodAmt <= 0 || n <= 0 || fvTarget < 0) {
+            resultEl.textContent = resultText;
+            resultEl.classList.add('empty');
+            return null;
+          }
+          resultValue = solveRate(p, fvTarget, n, pmt, periodsPerYear, isWithdrawal);
+          resultText = '年化報酬率：' + formatRate(resultValue);
+          rateInput.value = Math.round(resultValue * 100) / 100;
+        } else if (mode === 'principal') {
+          if (isNaN(periodAmt) || periodAmt <= 0 || n <= 0 || isNaN(fvInput) || fvInput < 0) {
+            resultEl.textContent = resultText;
+            resultEl.classList.add('empty');
+            return null;
+          }
+          resultValue = solvePrincipal(fvInput, rate, n, pmt, periodsPerYear, isWithdrawal);
+          resultText = '所需本金：' + formatNum(resultValue);
+          principalInput.value = Math.round(resultValue);
+        } else if (mode === 'time') {
+          if (isNaN(fvInput) || fvInput <= 0 || isNaN(rate)) {
+            resultEl.textContent = resultText;
+            resultEl.classList.add('empty');
+            return null;
+          }
+          const nSolved = solvePeriods(p, fvInput, rate, pmt, periodsPerYear, isWithdrawal);
+          if (nSolved == null || nSolved < 0) {
+            resultEl.textContent = '計算結果：無法達成（請檢查目標與條件）';
+            resultEl.classList.remove('empty');
+            return null;
+          }
+          const ym = periodsToYearsOrMonths(nSolved, freq);
+          resultText = ym.unit === 'year' ? '所需時間：' + ym.value + ' 年' : '所需時間：' + ym.value + ' 月';
+          periodAmountInput.value = ym.value;
+          periodUnitSelect.value = ym.unit;
+          resultValue = fvInput;
+        } else if (mode === 'pmt') {
+          if (isNaN(periodAmt) || periodAmt <= 0 || n <= 0 || isNaN(fvInput) || fvInput < 0) {
+            resultEl.textContent = resultText;
+            resultEl.classList.add('empty');
+            return null;
+          }
+          resultValue = solvePMT(p, fvInput, rate, n, periodsPerYear, isWithdrawal);
+          resultText = (isWithdrawal ? '每期領回：' : '每期投入：') + formatNum(resultValue);
+          paymentInput.value = Math.round(resultValue);
+          resultValue = fvInput;
+        }
+
+        resultEl.textContent = resultText;
+        resultEl.classList.remove('empty');
+        return mode === 'fv' ? resultValue : (resultValue != null ? (typeof resultValue === 'number' ? resultValue : fvInput) : null);
+      }
+
+      principalInput.addEventListener('input', updateResult);
+      periodAmountInput.addEventListener('input', updateResult);
+      periodUnitSelect.addEventListener('change', updateResult);
+      frequencySelect.addEventListener('change', updateResult);
+      paymentInput.addEventListener('input', updateResult);
+      paymentTypeSelect.addEventListener('change', updateResult);
+      rateInput.addEventListener('input', updateResult);
+      finalValueInput.addEventListener('input', updateResult);
+
+      card.updateResult = updateResult;
+      card.getFinalAmount = () => {
+        const mode = calcModeSelect.value;
+        const p = parseFloat(principalInput.value) || 0;
+        const periodAmt = parseFloat(periodAmountInput.value);
+        const periodUnit = periodUnitSelect.value;
+        const freq = frequencySelect.value;
+        const pmt = parseFloat(paymentInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        const fvIn = parseFloat(finalValueInput.value);
+        const isWithdrawal = paymentTypeSelect.value === 'withdraw';
+        const periodsPerYear = FREQ_OPTIONS.find(f => f.value === freq).periodsPerYear;
+        const n = getTotalPeriods(periodAmt, periodUnit, freq);
+        if (mode === 'fv') {
+          if (isNaN(p) || isNaN(periodAmt) || periodAmt <= 0 || n <= 0) return null;
+          return futureValue(p, rate, n, pmt, periodsPerYear, isWithdrawal);
+        }
+        return fvIn && !isNaN(fvIn) ? fvIn : null;
+      };
+      card.getValues = () => ({
+        calcMode: calcModeSelect.value,
+        principal: principalInput.value,
+        periodAmount: periodAmountInput.value,
+        periodUnit: periodUnitSelect.value,
+        frequency: frequencySelect.value,
+        paymentType: paymentTypeSelect.value,
+        payment: paymentInput.value,
+        rate: rateInput.value,
+        finalValue: finalValueInput.value
+      });
+
+      card.querySelector('.btn-remove-stage').addEventListener('click', () => {
+        card.remove();
+        renumberStages();
+        recalcAll();
+      });
+
+      return card;
+    }
+
+    function renumberStages() {
+      document.querySelectorAll('.stage-card').forEach((card, i) => {
+        card.querySelector('h2').innerHTML = '<span class="num">' + (i + 1) + '</span> 階段 ' + (i + 1);
+        card.dataset.stageId = i + 1;
+      });
+      stageCount = document.querySelectorAll('.stage-card').length;
+    }
+
+    function recalcAll() {
+      const cards = document.querySelectorAll('.stage-card');
+      let nextPrincipal = null;
+      cards.forEach((card) => {
+        const principalInput = card.querySelector('[data-field="principal"]');
+        if (nextPrincipal != null && principalInput.value === '') {
+          principalInput.value = Math.round(nextPrincipal);
+        }
+        const fv = card.updateResult();
+        nextPrincipal = card.getFinalAmount();
+      });
+      buildSummary();
+    }
+
+    function periodDisplay(periodAmount, periodUnit) {
+      return periodUnit === 'year' ? periodAmount + ' 年' : periodAmount + ' 月';
+    }
+
+    function modeLabel(value) {
+      return CALC_MODES.find(m => m.value === value).label;
+    }
+
+    function buildSummary() {
+      const tbody = document.getElementById('summaryBody');
+      const table = document.getElementById('summaryTable');
+      tbody.innerHTML = '';
+      const cards = document.querySelectorAll('.stage-card');
+      if (cards.length === 0) {
+        table.style.display = 'none';
+        return;
+      }
+      table.style.display = 'table';
+      const freqLabel = { yearly: '每一年', semi: '每半年', quarterly: '每一季', monthly: '每個月' };
+      cards.forEach((card, i) => {
+        const v = card.getValues();
+        const finalAmt = card.getFinalAmount();
+        const payLabel = v.paymentType === 'withdraw' ? '領回 ' + formatNum(parseFloat(v.payment)) : formatNum(parseFloat(v.payment));
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>階段 ${i + 1}</td>
+          <td>${modeLabel(v.calcMode)}</td>
+          <td class="num">${formatNum(parseFloat(v.principal))}</td>
+          <td>${periodDisplay(v.periodAmount, v.periodUnit)}</td>
+          <td>${freqLabel[v.frequency] || v.frequency}</td>
+          <td class="num">${payLabel}</td>
+          <td class="num">${v.rate}%</td>
+          <td class="num">${formatNum(finalAmt)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById('addStage').addEventListener('click', () => {
+      const container = document.getElementById('stages');
+      const cards = container.querySelectorAll('.stage-card');
+      let nextPrincipal = null;
+      const last = cards[cards.length - 1];
+      if (last && last.getFinalAmount != null) nextPrincipal = last.getFinalAmount();
+      container.appendChild(createStageCard(nextPrincipal));
+      recalcAll();
+    });
+
+    document.getElementById('recalcAll').addEventListener('click', recalcAll);
+
+    document.getElementById('stages').appendChild(createStageCard(null));
+    recalcAll();
+  </script>
+</body>
+</html>
