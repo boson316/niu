@@ -118,7 +118,10 @@
   </style>
 </head>
 <body>
-  <p style="font-size:0.85rem;margin-bottom:1rem;"><a href="annual_return_calculator_en_v1.html">English version</a></p>
+  <p style="font-size:0.85rem;margin-bottom:1rem;">
+    <a href="annual_return_calculator_v5.html">退休規劃 v5（4% 法則）</a> ·
+    <a href="annual_return_calculator_en_v1.html">English version</a>
+  </p>
 
   <h1>年化報酬率計算機（複利／IRR）</h1>
   <p class="subtitle">可算：最終金額、年化報酬率、所需本金、所需時間、定期定額。參考 <a href="https://wisehomemaker.com/annualized-rate-of-return-calculator/" target="_blank" rel="noopener">複利+年化報酬率計算機</a>。支援多階段，上一階段最終金額可帶入下一階段本金。</p>
@@ -149,7 +152,7 @@
   <script>
     const CALC_MODES = [
       { value: 'fv', label: '算最終金額' },
-      { value: 'rate', label: '算年化報酬率' },
+      { value: 'rate', label: '算年化報酬率（IRR）' },
       { value: 'principal', label: '算本金' },
       { value: 'time', label: '算所需時間' },
       { value: 'pmt', label: '算定期定額投入' }
@@ -571,7 +574,31 @@
 
     document.getElementById('recalcAll').addEventListener('click', recalcAll);
 
+    function applyUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('from')) return;
+      const card = document.querySelector('.stage-card');
+      if (!card) return;
+      const setVal = (field, key) => {
+        if (!params.has(key)) return;
+        const el = card.querySelector('[data-field="' + field + '"]');
+        if (el) el.value = params.get(key);
+      };
+      setVal('calcMode', 'calcMode');
+      setVal('principal', 'principal');
+      setVal('periodAmount', 'periodAmount');
+      setVal('periodUnit', 'periodUnit');
+      setVal('frequency', 'frequency');
+      setVal('payment', 'payment');
+      setVal('rate', 'rate');
+      setVal('finalValue', 'finalValue');
+      const modeSelect = card.querySelector('[data-field="calcMode"]');
+      if (modeSelect) modeSelect.dispatchEvent(new Event('change'));
+      card.updateResult();
+    }
+
     document.getElementById('stages').appendChild(createStageCard(null));
+    applyUrlParams();
     recalcAll();
   </script>
 </body>

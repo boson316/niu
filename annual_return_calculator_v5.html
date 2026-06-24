@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>退休規劃計算機 v5（4% 法則）</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      padding-bottom: 1.5rem;
+      background: #f5f6fa;
+      color: #2c3e50;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; color: #1a202c; }
+    h2 { font-size: 1.05rem; margin: 0 0 0.75rem 0; color: #2d3748; }
+    .subtitle { color: #718096; font-size: 0.9rem; margin-bottom: 1rem; }
+    .nav { font-size: 0.85rem; margin-bottom: 1rem; }
+    .nav a { color: #3182ce; text-decoration: none; margin-right: 0.75rem; }
+    .nav a:hover { text-decoration: underline; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .hint {
+      font-size: 0.82rem;
+      color: #718096;
+      margin: 0.5rem 0 0.75rem;
+      line-height: 1.5;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem 1rem;
+      align-items: end;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field label { font-size: 0.8rem; color: #718096; }
+    .field input, .field select {
+      padding: 0.5rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      min-height: 44px;
+    }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: #4299e1;
+      box-shadow: 0 0 0 2px rgba(66,153,225,0.2);
+    }
+    .field.wide { grid-column: 1 / -1; }
+    .preset-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+    .preset-btn {
+      padding: 0.25rem 0.55rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 999px;
+      background: #edf2f7;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: #4a5568;
+    }
+    .preset-btn:hover { background: #e2e8f0; border-color: #a0aec0; }
+    .result-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #ebf8ff;
+      border: 1px solid #bee3f8;
+      border-radius: 10px;
+    }
+    .result-box h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+      color: #2b6cb0;
+    }
+    .result-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.35rem 0;
+      font-size: 0.92rem;
+      border-bottom: 1px dashed #bee3f8;
+    }
+    .result-line:last-child { border-bottom: none; }
+    .result-line .label { color: #4a5568; }
+    .result-line .value {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .result-line.total .value { color: #2b6cb0; font-size: 1.05rem; }
+    .result-line.highlight .value { color: #276749; font-size: 1.15rem; }
+    .btn {
+      padding: 0.55rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
+    .btn-primary { background: #4299e1; color: #fff; }
+    .btn-primary:hover { background: #3182ce; }
+    .btn-secondary { background: #48bb78; color: #fff; margin-left: 0.5rem; }
+    .btn-secondary:hover { background: #38a169; }
+    .btn-row { margin-top: 0.75rem; }
+    .fixed-calc-bar {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
+      padding: 0.75rem 1rem;
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+      background: rgba(255, 255, 255, 0.95);
+      border-top: 1px solid #e2e8f0;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .fixed-calc-bar .btn {
+      width: 100%;
+      margin: 0;
+      min-height: 48px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 1rem;
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+      }
+      h1 { font-size: 1.3rem; }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .btn-row .btn-primary { display: none; }
+      .btn-row .btn-secondary {
+        margin-left: 0;
+        width: 100%;
+        min-height: 44px;
+      }
+      .fixed-calc-bar { display: block; }
+      .mode-tab {
+        flex: 1 1 auto;
+        text-align: center;
+        min-height: 44px;
+      }
+      .preset-btn {
+        min-height: 36px;
+        padding: 0.35rem 0.65rem;
+      }
+    }
+    .source-note {
+      font-size: 0.78rem;
+      color: #a0aec0;
+      margin-top: 1.25rem;
+      line-height: 1.5;
+    }
+    .mode-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.75rem;
+    }
+    .mode-tab {
+      padding: 0.4rem 0.75rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .mode-tab.active {
+      background: #4299e1;
+      color: #fff;
+      border-color: #4299e1;
+    }
+    .formula {
+      font-size: 0.82rem;
+      color: #4a5568;
+      background: #f7fafc;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      line-height: 1.6;
+    }
+    code { background: #edf2f7; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <a href="annual_return_calculator_v4.html">← 年化報酬率計算機 v4</a>
+  </div>
+
+  <h1>退休規劃計算機 v5</h1>
+  <p class="subtitle">以 <strong>4% 法則</strong>估算生活費退休金，加上買房目標，再用 ETF 假設報酬率反推「幾年能退休」或「每月要存多少」。</p>
+
+  <div class="card">
+    <h2>① 退休目標（4% 法則）</h2>
+    <p class="formula">
+      月生活開銷 × 300 = 年支出 × 25 = 4% 法則所需本金（每年可領 4% 當生活費）<br>
+      退休總資產目標 = 生活費本金 + 買房一次性支出
+    </p>
+    <div class="grid">
+      <div class="field">
+        <label>每月生活開銷（元）</label>
+        <input type="number" id="monthlyExpense" min="0" step="1000" value="50000" inputmode="numeric" enterkeyhint="done">
+      </div>
+      <div class="field">
+        <label>4% 法則生活本金（自動）</label>
+        <input type="text" id="livingFund" readonly>
+      </div>
+      <div class="field wide">
+        <label>台北市買房目標（元）</label>
+        <input type="number" id="housePrice" min="0" step="100000" value="15000000" inputmode="numeric" enterkeyhint="done">
+        <div class="preset-row" id="housePresets"></div>
+      </div>
+    </div>
+    <p class="hint" id="houseHint"></p>
+    <div class="result-box" id="targetBox">
+      <h3>退休資產目標</h3>
+      <div class="result-line">
+        <span class="label">生活費本金（月開銷 × 300）</span>
+        <span class="value" id="outLiving">－</span>
+      </div>
+      <div class="result-line">
+        <span class="label">買房一次性支出</span>
+        <span class="value" id="outHouse">－</span>
+      </div>
+      <div class="result-line total">
+        <span class="label">退休總資產目標</span>
+        <span class="value" id="outTotal">－</span>
+      </div>
+      <div class="result-line">
+        <span class="label">退休後每月可領生活費（4%÷12）</span>
+        <span class="value" id="outMonthlyWithdraw">－</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>② 投資計畫（ETF 複利）</h2>
+    <p class="hint">預設年化報酬 10%（全球股票 ETF 長期概算，非保證）。可改為你的預期報酬率。</p>
+    <div class="mode-tabs" id="solveModeTabs">
+      <button type="button" class="mode-tab active" data-mode="time">算幾年能退休</button>
+      <button type="button" class="mode-tab" data-mode="pmt">算每月要存多少</button>
+      <button type="button" class="mode-tab" data-mode="principal">算現在要有多少本金</button>
+    </div>
+    <div class="grid">
+      <div class="field">
+        <label>目前已有本金（元）</label>
+        <input type="number" id="principal" min="0" step="10000" value="500000" inputmode="numeric" enterkeyhint="done">
+      </div>
+      <div class="field" data-wrap="payment">
+        <label>每月定期投入（元）</label>
+        <input type="number" id="monthlyPayment" min="0" step="1000" value="30000" inputmode="numeric" enterkeyhint="done">
+      </div>
+      <div class="field" data-wrap="years">
+        <label>預計投資年數</label>
+        <input type="number" id="investYears" min="1" step="1" value="20" inputmode="numeric" enterkeyhint="done">
+      </div>
+      <div class="field">
+        <label>ETF 年化報酬率（%）</label>
+        <input type="number" id="annualRate" min="0" max="30" step="0.5" value="10" inputmode="decimal" enterkeyhint="done">
+      </div>
+      <div class="field">
+        <label>目前年齡（選填）</label>
+        <input type="number" id="currentAge" min="18" max="80" step="1" placeholder="例：32" inputmode="numeric" enterkeyhint="done">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary" id="calcBtn">計算</button>
+      <button type="button" class="btn btn-secondary" id="openV4Btn">在 v4 年化計算機細調</button>
+    </div>
+
+    <div class="result-box" id="planBox" style="display:none;">
+      <h3 id="planTitle">投資結果</h3>
+      <div id="planLines"></div>
+    </div>
+  </div>
+
+  <p class="source-note" id="sourceNote"></p>
+
+  <div class="fixed-calc-bar" id="fixedCalcBar">
+    <button type="button" class="btn btn-primary" id="fixedCalcBtn">計算</button>
+  </div>
+
+  <script>
+    const HOUSE_PRESETS = [
+      { label: '套房小宅 ~10坪', value: 9000000, note: '中山／松山中古套房，實價約 800–1,100 萬' },
+      { label: '一房一廳 ~13坪', value: 12000000, note: '常見成交約 1,000–1,300 萬' },
+      { label: '舒適一房 ~18坪', value: 15000000, note: '單人舒服住預設；約 1,200–1,800 萬' },
+      { label: '兩房舒服 ~25坪', value: 25000000, note: '約 2,000–2,800 萬' },
+      { label: '精華地段', value: 30000000, note: '大安／信義等，約 2,500–3,500 萬+' }
+    ];
+
+    const PERIODS_PER_YEAR = 12;
+    let solveMode = 'time';
+
+    function futureValue(principal, annualRate, totalPeriods, payment) {
+      const r = annualRate / 100;
+      const rPer = r / PERIODS_PER_YEAR;
+      const pmt = parseFloat(payment) || 0;
+      if (Math.abs(rPer) < 1e-10) return principal + pmt * totalPeriods;
+      const x = Math.pow(1 + rPer, totalPeriods);
+      return principal * x + pmt * (x - 1) / rPer;
+    }
+
+    function solvePMT(principal, fv, annualRate, totalPeriods) {
+      const r = annualRate / 100;
+      const rPer = r / PERIODS_PER_YEAR;
+      const x = Math.pow(1 + rPer, totalPeriods);
+      if (Math.abs(x - 1) < 1e-10) return (fv - principal) / totalPeriods;
+      return (fv - principal * x) * rPer / (x - 1);
+    }
+
+    function solvePrincipal(fv, annualRate, totalPeriods, payment) {
+      const r = annualRate / 100;
+      const rPer = r / PERIODS_PER_YEAR;
+      const pmt = parseFloat(payment) || 0;
+      if (Math.abs(rPer) < 1e-10) return fv - pmt * totalPeriods;
+      const x = Math.pow(1 + rPer, totalPeriods);
+      return (fv - pmt * (x - 1) / rPer) / x;
+    }
+
+    function solvePeriods(principal, fv, annualRate, payment) {
+      const r = annualRate / 100;
+      const rPer = r / PERIODS_PER_YEAR;
+      const pmt = parseFloat(payment) || 0;
+      if (Math.abs(rPer) < 1e-10) {
+        if (Math.abs(pmt) < 1e-10) return null;
+        return (fv - principal) / pmt;
+      }
+      const denom = principal * rPer + pmt;
+      if (Math.abs(denom) < 1e-10) return null;
+      const x = (fv * rPer + pmt) / denom;
+      if (x <= 0) return null;
+      return Math.log(x) / Math.log(1 + rPer);
+    }
+
+    function formatNum(x) {
+      if (x == null || isNaN(x)) return '－';
+      return Math.round(x).toLocaleString('zh-TW');
+    }
+
+    function formatYears(n) {
+      if (n == null || isNaN(n) || n < 0) return null;
+      const years = n / PERIODS_PER_YEAR;
+      return Math.round(years * 10) / 10;
+    }
+
+    function getRetirementTarget() {
+      const monthly = parseFloat(document.getElementById('monthlyExpense').value) || 0;
+      const house = parseFloat(document.getElementById('housePrice').value) || 0;
+      const living = monthly * 300;
+      return { monthly, living, house, total: living + house };
+    }
+
+    function updateTargetDisplay() {
+      const t = getRetirementTarget();
+      document.getElementById('livingFund').value = formatNum(t.living);
+      document.getElementById('outLiving').textContent = formatNum(t.living) + ' 元';
+      document.getElementById('outHouse').textContent = formatNum(t.house) + ' 元';
+      document.getElementById('outTotal').textContent = formatNum(t.total) + ' 元';
+      document.getElementById('outMonthlyWithdraw').textContent = formatNum(t.monthly) + ' 元／月';
+    }
+
+    function setSolveMode(mode) {
+      solveMode = mode;
+      document.querySelectorAll('.mode-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+      const paymentWrap = document.querySelector('[data-wrap="payment"]');
+      const yearsWrap = document.querySelector('[data-wrap="years"]');
+      const paymentInput = document.getElementById('monthlyPayment');
+      const yearsInput = document.getElementById('investYears');
+
+      paymentInput.disabled = mode === 'pmt';
+      yearsInput.disabled = mode === 'time';
+
+      if (mode === 'pmt') paymentInput.value = '';
+      if (mode === 'time') yearsInput.value = '';
+    }
+
+    function buildPlanResult() {
+      const target = getRetirementTarget().total;
+      const principal = parseFloat(document.getElementById('principal').value) || 0;
+      const payment = parseFloat(document.getElementById('monthlyPayment').value) || 0;
+      const years = parseFloat(document.getElementById('investYears').value);
+      const rate = parseFloat(document.getElementById('annualRate').value) || 0;
+      const age = parseFloat(document.getElementById('currentAge').value);
+
+      const box = document.getElementById('planBox');
+      const lines = document.getElementById('planLines');
+      const title = document.getElementById('planTitle');
+      lines.innerHTML = '';
+
+      if (target <= 0) {
+        box.style.display = 'block';
+        title.textContent = '請輸入生活開銷與房價';
+        return;
+      }
+
+      const addLine = (label, value, cls) => {
+        const row = document.createElement('div');
+        row.className = 'result-line' + (cls ? ' ' + cls : '');
+        row.innerHTML = '<span class="label">' + label + '</span><span class="value">' + value + '</span>';
+        lines.appendChild(row);
+      };
+
+      box.style.display = 'block';
+
+      if (solveMode === 'time') {
+        const n = solvePeriods(principal, target, rate, payment);
+        const yrs = formatYears(n);
+        if (yrs == null) {
+          title.textContent = '無法達成目標';
+          addLine('原因', '以目前本金與每月投入，在合理報酬下無法累積到目標');
+          return;
+        }
+        title.textContent = '概算幾年能退休';
+        addLine('退休總資產目標', formatNum(target) + ' 元', 'total');
+        addLine('目前本金', formatNum(principal) + ' 元');
+        addLine('每月投入', formatNum(payment) + ' 元');
+        addLine('假設年化報酬', rate + '%');
+        addLine('概算投資年數', yrs + ' 年', 'highlight');
+        if (!isNaN(age) && age > 0) {
+          addLine('概算退休年齡', Math.round(age + yrs) + ' 歲', 'highlight');
+        }
+        const fvCheck = futureValue(principal, rate, yrs * PERIODS_PER_YEAR, payment);
+        addLine('屆時預估資產', formatNum(fvCheck) + ' 元');
+      } else if (solveMode === 'pmt') {
+        if (isNaN(years) || years <= 0) {
+          title.textContent = '請輸入投資年數';
+          return;
+        }
+        const n = years * PERIODS_PER_YEAR;
+        const pmt = solvePMT(principal, target, rate, n);
+        title.textContent = '每月要存多少';
+        addLine('退休總資產目標', formatNum(target) + ' 元', 'total');
+        addLine('目前本金', formatNum(principal) + ' 元');
+        addLine('投資年數', years + ' 年');
+        addLine('假設年化報酬', rate + '%');
+        addLine('每月需投入', formatNum(pmt) + ' 元', 'highlight');
+        document.getElementById('monthlyPayment').value = Math.round(pmt);
+      } else {
+        if (isNaN(years) || years <= 0) {
+          title.textContent = '請輸入投資年數';
+          return;
+        }
+        const n = years * PERIODS_PER_YEAR;
+        const p = solvePrincipal(target, rate, n, payment);
+        title.textContent = '現在要有多少本金';
+        addLine('退休總資產目標', formatNum(target) + ' 元', 'total');
+        addLine('每月投入', formatNum(payment) + ' 元');
+        addLine('投資年數', years + ' 年');
+        addLine('假設年化報酬', rate + '%');
+        addLine('所需初始本金', formatNum(p) + ' 元', 'highlight');
+        document.getElementById('principal').value = Math.round(p);
+      }
+    }
+
+    function openV4WithParams() {
+      const target = getRetirementTarget().total;
+      const principal = parseFloat(document.getElementById('principal').value) || 0;
+      const payment = parseFloat(document.getElementById('monthlyPayment').value) || 0;
+      const rate = parseFloat(document.getElementById('annualRate').value) || 10;
+      const modeMap = { time: 'time', pmt: 'pmt', principal: 'principal' };
+      const params = new URLSearchParams({
+        from: 'v5',
+        calcMode: modeMap[solveMode],
+        principal: Math.round(principal),
+        finalValue: Math.round(target),
+        rate: rate,
+        payment: Math.round(payment),
+        frequency: 'monthly',
+        periodUnit: 'year'
+      });
+      if (solveMode !== 'time') {
+        const years = parseFloat(document.getElementById('investYears').value);
+        if (!isNaN(years) && years > 0) params.set('periodAmount', years);
+      }
+      window.open('annual_return_calculator_v4.html?' + params.toString(), '_blank');
+    }
+
+    function initHousePresets() {
+      const row = document.getElementById('housePresets');
+      HOUSE_PRESETS.forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'preset-btn';
+        btn.textContent = p.label + ' ' + (p.value / 10000).toLocaleString('zh-TW') + '萬';
+        btn.addEventListener('click', () => {
+          document.getElementById('housePrice').value = p.value;
+          document.getElementById('houseHint').textContent = p.note;
+          updateTargetDisplay();
+          buildPlanResult();
+        });
+        row.appendChild(btn);
+      });
+      document.getElementById('houseHint').textContent = HOUSE_PRESETS[2].note;
+    }
+
+    function onCalcClick() {
+      buildPlanResult();
+      updateTargetDisplay();
+      const planBox = document.getElementById('planBox');
+      if (planBox.style.display !== 'none') {
+        planBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function initSourceNote() {
+      document.getElementById('sourceNote').innerHTML =
+        '房價參考：內政部實價登錄／信義房屋 2025–2026 台北市一房一廳成交（中山、松山等），' +
+        '套房約 800–1,100 萬、舒適一房約 1,200–1,800 萬、兩房約 2,000–3,000 萬。' +
+        '此為概算，實際依地段、屋齡、坪數而異。4% 法則與 10% ETF 報酬皆非保證。';
+    }
+
+    ['monthlyExpense', 'housePrice'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        updateTargetDisplay();
+        buildPlanResult();
+      });
+    });
+
+    ['principal', 'monthlyPayment', 'investYears', 'annualRate', 'currentAge'].forEach(id => {
+      document.getElementById(id).addEventListener('input', buildPlanResult);
+    });
+
+    document.querySelectorAll('.mode-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setSolveMode(btn.dataset.mode);
+        buildPlanResult();
+      });
+    });
+
+    document.getElementById('calcBtn').addEventListener('click', onCalcClick);
+    document.getElementById('fixedCalcBtn').addEventListener('click', onCalcClick);
+    document.getElementById('openV4Btn').addEventListener('click', openV4WithParams);
+
+    initHousePresets();
+    initSourceNote();
+    setSolveMode('time');
+    updateTargetDisplay();
+    buildPlanResult();
+  </script>
+</body>
+</html>

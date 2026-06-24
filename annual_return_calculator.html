@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>年化報酬率計算機</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      background: #f5f6fa;
+      color: #2c3e50;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #1a202c;
+    }
+    .subtitle { color: #718096; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .stage-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .stage-card h2 {
+      font-size: 1rem;
+      margin: 0 0 1rem 0;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .stage-card h2 .num { background: #4299e1; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.75rem 1rem;
+      align-items: end;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field label { font-size: 0.8rem; color: #718096; }
+    .field input, .field select {
+      padding: 0.5rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: #4299e1;
+      box-shadow: 0 0 0 2px rgba(66,153,225,0.2);
+    }
+    .result-row {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .result-row .final-amount {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #2b6cb0;
+    }
+    .result-row .final-amount.empty { color: #a0aec0; font-weight: normal; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn-add { background: #4299e1; color: #fff; }
+    .btn-add:hover { background: #3182ce; }
+    .btn-remove { background: #fc8181; color: #fff; }
+    .btn-remove:hover { background: #e53e3e; }
+    .btn-recalc { background: #48bb78; color: #fff; margin-left: auto; }
+    .btn-recalc:hover { background: #38a169; }
+    .toolbar { margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .summary-table th, .summary-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    .summary-table th { background: #edf2f7; font-size: 0.8rem; color: #4a5568; }
+    .summary-table td { font-size: 0.9rem; }
+    .summary-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .summary-table tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <h1>年化報酬率計算機</h1>
+  <p class="subtitle">可新增多個階段，上一階段的最終金額會自動帶入下一階段的本金。</p>
+
+  <div class="toolbar">
+    <button type="button" class="btn btn-add" id="addStage">＋ 新增階段</button>
+    <button type="button" class="btn btn-recalc" id="recalcAll">重新計算全部</button>
+  </div>
+
+  <div id="stages"></div>
+
+  <table class="summary-table" id="summaryTable" style="display: none;">
+    <thead>
+      <tr>
+        <th>階段</th>
+        <th class="num">本金</th>
+        <th class="num">期間(年)</th>
+        <th>定期</th>
+        <th class="num">定額投入</th>
+        <th class="num">年化報酬率</th>
+        <th class="num">最終金額</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+
+  <script>
+    const STAGE_DEFAULTS = {
+      principal: 300000,
+      years: 2,
+      frequency: 'yearly',
+      payment: 50000,
+      rate: 25
+    };
+
+    function futureValue(principal, annualRate, years, payment, frequency) {
+      const r = annualRate / 100;
+      if (frequency === 'yearly') {
+        const n = years;
+        if (Math.abs(r) < 1e-10) return principal + payment * n;
+        const fv = principal * Math.pow(1 + r, n) + payment * (Math.pow(1 + r, n) - 1) / r;
+        return fv;
+      } else {
+        const periodsPerYear = 12;
+        const rPer = r / periodsPerYear;
+        const n = years * periodsPerYear;
+        if (Math.abs(rPer) < 1e-10) return principal + payment * n;
+        const fv = principal * Math.pow(1 + rPer, n) + payment * (Math.pow(1 + rPer, n) - 1) / rPer;
+        return fv;
+      }
+    }
+
+    function formatNum(x) {
+      if (x == null || isNaN(x)) return '－';
+      return Math.round(x).toLocaleString('zh-TW');
+    }
+
+    let stageCount = 0;
+
+    function createStageCard(initialPrincipal) {
+      stageCount += 1;
+      const id = stageCount;
+      const card = document.createElement('div');
+      card.className = 'stage-card';
+      card.dataset.stageId = id;
+      const prevFinal = initialPrincipal != null ? Math.round(initialPrincipal) : STAGE_DEFAULTS.principal;
+      card.innerHTML = `
+        <h2><span class="num">${id}</span> 階段 ${id}</h2>
+        <div class="grid">
+          <div class="field">
+            <label>最初投入資金（本金）</label>
+            <input type="number" min="0" step="1000" placeholder="例：300000" data-field="principal" value="${prevFinal}">
+          </div>
+          <div class="field">
+            <label>投資期間（年）</label>
+            <input type="number" min="0.5" step="0.5" placeholder="年" data-field="years" value="${STAGE_DEFAULTS.years}">
+          </div>
+          <div class="field">
+            <label>定期</label>
+            <select data-field="frequency">
+              <option value="yearly">每一年</option>
+              <option value="monthly">每個月</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>定額投入</label>
+            <input type="number" min="0" step="1000" placeholder="每期金額" data-field="payment" value="${STAGE_DEFAULTS.payment}">
+          </div>
+          <div class="field">
+            <label>年化報酬率（%）</label>
+            <input type="number" min="-100" step="0.1" placeholder="例：25" data-field="rate" value="${STAGE_DEFAULTS.rate}">
+          </div>
+        </div>
+        <div class="result-row">
+          <span class="final-amount empty" data-result="final">最終金額：－</span>
+          <button type="button" class="btn btn-remove btn-remove-stage">移除階段</button>
+        </div>
+      `;
+
+      const principalInput = card.querySelector('[data-field="principal"]');
+      const yearsInput = card.querySelector('[data-field="years"]');
+      const frequencySelect = card.querySelector('[data-field="frequency"]');
+      const paymentInput = card.querySelector('[data-field="payment"]');
+      const rateInput = card.querySelector('[data-field="rate"]');
+      const resultEl = card.querySelector('[data-result="final"]');
+
+      function updateResult() {
+        const p = parseFloat(principalInput.value);
+        const y = parseFloat(yearsInput.value);
+        const freq = frequencySelect.value;
+        const pmt = parseFloat(paymentInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        if (isNaN(p) || isNaN(y) || y <= 0) {
+          resultEl.textContent = '最終金額：－';
+          resultEl.classList.add('empty');
+          return null;
+        }
+        const fv = futureValue(p, rate, y, pmt, freq);
+        resultEl.textContent = '最終金額：' + formatNum(fv);
+        resultEl.classList.remove('empty');
+        return fv;
+      }
+
+      principalInput.addEventListener('input', updateResult);
+      yearsInput.addEventListener('input', updateResult);
+      frequencySelect.addEventListener('change', updateResult);
+      paymentInput.addEventListener('input', updateResult);
+      rateInput.addEventListener('input', updateResult);
+
+      card.updateResult = updateResult;
+      card.getFinalAmount = () => {
+        const p = parseFloat(principalInput.value);
+        const y = parseFloat(yearsInput.value);
+        const freq = frequencySelect.value;
+        const pmt = parseFloat(paymentInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        if (isNaN(p) || isNaN(y) || y <= 0) return null;
+        return futureValue(p, rate, y, pmt, freq);
+      };
+      card.getValues = () => ({
+        principal: principalInput.value,
+        years: yearsInput.value,
+        frequency: frequencySelect.value,
+        payment: paymentInput.value,
+        rate: rateInput.value
+      });
+
+      card.querySelector('.btn-remove-stage').addEventListener('click', () => {
+        card.remove();
+        renumberStages();
+        recalcAll();
+      });
+
+      return card;
+    }
+
+    function renumberStages() {
+      document.querySelectorAll('.stage-card').forEach((card, i) => {
+        card.querySelector('h2').innerHTML = '<span class="num">' + (i + 1) + '</span> 階段 ' + (i + 1);
+        card.dataset.stageId = i + 1;
+      });
+      stageCount = document.querySelectorAll('.stage-card').length;
+    }
+
+    function recalcAll() {
+      const cards = document.querySelectorAll('.stage-card');
+      let nextPrincipal = null;
+      cards.forEach((card, index) => {
+        const principalInput = card.querySelector('[data-field="principal"]');
+        if (nextPrincipal != null && principalInput.value === '') {
+          principalInput.value = Math.round(nextPrincipal);
+        }
+        const fv = card.updateResult();
+        nextPrincipal = fv;
+      });
+      buildSummary();
+    }
+
+    function buildSummary() {
+      const tbody = document.getElementById('summaryBody');
+      const table = document.getElementById('summaryTable');
+      tbody.innerHTML = '';
+      const cards = document.querySelectorAll('.stage-card');
+      if (cards.length === 0) {
+        table.style.display = 'none';
+        return;
+      }
+      table.style.display = 'table';
+      const freqLabel = { yearly: '每一年', monthly: '每個月' };
+      cards.forEach((card, i) => {
+        const v = card.getValues();
+        const finalAmt = card.getFinalAmount();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>階段 ${i + 1}</td>
+          <td class="num">${formatNum(parseFloat(v.principal))}</td>
+          <td class="num">${v.years}</td>
+          <td>${freqLabel[v.frequency] || v.frequency}</td>
+          <td class="num">${formatNum(parseFloat(v.payment))}</td>
+          <td class="num">${v.rate}%</td>
+          <td class="num">${formatNum(finalAmt)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById('addStage').addEventListener('click', () => {
+      const container = document.getElementById('stages');
+      const cards = container.querySelectorAll('.stage-card');
+      let nextPrincipal = null;
+      const last = cards[cards.length - 1];
+      if (last && last.getFinalAmount != null) nextPrincipal = last.getFinalAmount();
+      container.appendChild(createStageCard(nextPrincipal));
+      recalcAll();
+    });
+
+    document.getElementById('recalcAll').addEventListener('click', recalcAll);
+
+    document.getElementById('stages').appendChild(createStageCard(null));
+    recalcAll();
+  </script>
+</body>
+</html>
