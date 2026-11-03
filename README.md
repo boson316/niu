@@ -13,8 +13,9 @@ Static HTML tools for compound growth, IRR, and retirement planning. No build st
 | Page | Description |
 |------|-------------|
 | [index.html](index.html) | Version hub — pick a calculator |
-| [annual_return_calculator_v4.html](annual_return_calculator_v4.html) | **Recommended** — CAGR / IRR, multi-stage, solve for FV / rate / principal / time / payment |
-| [annual_return_calculator_v5.html](annual_return_calculator_v5.html) | Retirement planner — 4% rule, Taipei housing presets, years-to-FIRE with ETF assumptions |
+| [annual_return_calculator_v6.html](annual_return_calculator_v6.html) | **Recommended** — app-style UI: compound calculator, multi-stage plan and retirement planner in one, with charts, yearly tables, installable PWA |
+| [annual_return_calculator_v4.html](annual_return_calculator_v4.html) | Previous — CAGR / IRR, multi-stage, solve for FV / rate / principal / time / payment |
+| [annual_return_calculator_v5.html](annual_return_calculator_v5.html) | Previous — retirement planner: 4% rule, Taipei housing presets, years-to-FIRE with ETF assumptions |
 | [annual_return_calculator_en_v1.html](annual_return_calculator_en_v1.html) | English UI (v1-style) |
 
 Legacy versions (`annual_return_calculator.html`, `v3`) remain for reference.
@@ -32,6 +33,15 @@ Or double-click any HTML file.
 ---
 
 ## Features
+
+### v6 — Compound & retirement app
+
+- Bottom tab bar on mobile, live result card (no Calculate button), floating result pill, dark mode, thousands-separator inputs with 萬 hints
+- Compound tab: solve for FV / rate / payment / principal / time; switching modes keeps the last answer
+- Multi-stage tab: contribute or withdraw per stage, frequency, yearly step-up, one-off lump sums; overall IRR from actual cash flows
+- Retirement tab: adjustable withdrawal rate + house goal, **inflation-adjusted** targets, other retirement income, post-retirement drawdown simulation, ±2% return scenarios
+- Interactive growth charts and year-by-year tables; shareable links; installable/offline PWA (`manifest.webmanifest`, `sw.js`)
+- Math changes vs v4/v5: rates are **effective annual** by default (nominal ÷ 12 overstated returns), IRR search covers −99% to 1000%, begin/end-of-period timing, depletion detection
 
 ### v4 — Annual return calculator
 
