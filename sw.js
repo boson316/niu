@@ -1,6 +1,6 @@
 // Offline support for the v6 calculator. Network-first so updates show up immediately;
 // falls back to the cached copy when offline.
-const CACHE = 'niu-v6-r2';
+const CACHE = 'niu-v6-r3';
 const ASSETS = [
   './annual_return_calculator_v6.html',
   './manifest.webmanifest',

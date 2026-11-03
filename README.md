@@ -13,7 +13,7 @@ Static HTML tools for compound growth, IRR, and retirement planning. No build st
 | Page | Description |
 |------|-------------|
 | [index.html](index.html) | Version hub — pick a calculator |
-| [annual_return_calculator_v6.html](annual_return_calculator_v6.html) | **Recommended** — app-style UI: compound calculator, multi-stage plan and retirement planner in one, with charts, yearly tables, installable PWA |
+| [annual_return_calculator_v6.html](annual_return_calculator_v6.html) | **Recommended** — app-style UI: compound calculator, multi-stage plan and retirement planner in one, with charts, yearly tables, installable PWA. Bilingual: [English](annual_return_calculator_v6.html?lang=en#calc) via `?lang=en` or the 中文/EN button |
 | [annual_return_calculator_v4.html](annual_return_calculator_v4.html) | Previous — CAGR / IRR, multi-stage, solve for FV / rate / principal / time / payment |
 | [annual_return_calculator_v5.html](annual_return_calculator_v5.html) | Previous — retirement planner: 4% rule, Taipei housing presets, years-to-FIRE with ETF assumptions |
 | [annual_return_calculator_en_v1.html](annual_return_calculator_en_v1.html) | English UI (v1-style) |

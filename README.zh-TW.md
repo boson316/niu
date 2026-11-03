@@ -13,7 +13,7 @@
 | 頁面 | 說明 |
 |------|------|
 | [index.html](index.html) | 版本總覽 — 選擇計算機 |
-| [annual_return_calculator_v6.html](annual_return_calculator_v6.html) | **建議使用** — App 介面：複利計算、多階段、退休規劃三合一，含圖表、逐年明細，可安裝到手機（PWA） |
+| [annual_return_calculator_v6.html](annual_return_calculator_v6.html) | **建議使用** — App 介面：複利計算、多階段、退休規劃三合一，含圖表、逐年明細，可安裝到手機（PWA）。支援中英切換：網址加 `?lang=en`（[英文版](annual_return_calculator_v6.html?lang=en#calc)）或按右上角 EN |
 | [annual_return_calculator_v4.html](annual_return_calculator_v4.html) | 前一版 — 年化報酬／IRR、多階段、可反推本利和／報酬率／本金／時間／定額 |
 | [annual_return_calculator_v5.html](annual_return_calculator_v5.html) | 前一版 — 退休規劃：4% 法則、台北市房價預設、ETF 假設下幾年能退休 |
 | [annual_return_calculator_en_v1.html](annual_return_calculator_en_v1.html) | 英文介面（v1 風格） |

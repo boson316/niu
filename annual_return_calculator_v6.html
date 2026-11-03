@@ -123,6 +123,7 @@
     .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
     .icon-btn:disabled { opacity: .35; pointer-events: none; }
     .icon-btn.sm { width: 34px; height: 34px; border-radius: 10px; }
+    .lang-btn { width: auto; padding: 0 10px; font-size: 13px; font-weight: 700; }
     .icon-btn.sm .ico { width: 17px; height: 17px; }
 
     /* ---------- Layout ---------- */
@@ -453,6 +454,7 @@
         <button type="button" data-tab="retire"><svg class="ico"><use href="#i-sun"/></svg>退休規劃</button>
       </nav>
       <div class="appbar-actions">
+        <button type="button" class="icon-btn lang-btn" id="langBtn" aria-label="切換語言 / Switch language">EN</button>
         <button type="button" class="icon-btn" id="themeBtn" aria-label="切換深淺色"><svg class="ico"><use href="#i-moon"/></svg></button>
         <button type="button" class="icon-btn" id="shareBtn" aria-label="分享目前試算"><svg class="ico"><use href="#i-share"/></svg></button>
       </div>
@@ -780,16 +782,52 @@
     const nf = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 });
     const num = (v, d = 0) => (v == null || v === '' || !isFinite(v)) ? d : +v;
     const clone = (o) => JSON.parse(JSON.stringify(o));
-    const FREQ_NAME = { 12: '每月', 4: '每季', 2: '每半年', 1: '每年' };
+    /* ================= Language (zh / en) ================= */
+    // ?lang=en|zh 優先，其次記住的選擇，最後看瀏覽器語言。
+    const LANG = (() => {
+      let l = null;
+      try { l = new URLSearchParams(location.search).get('lang'); } catch (e) { l = null; }
+      if (l === 'en' || l === 'zh') { try { localStorage.setItem('niu-lang', l); } catch (e) { /* ignore */ } return l; }
+      try { l = localStorage.getItem('niu-lang'); } catch (e) { l = null; }
+      if (l === 'en' || l === 'zh') return l;
+      return /^zh/i.test(navigator.language || 'zh') ? 'zh' : 'en';
+    })();
+    const EN = LANG === 'en';
+    const T = (zh, en) => (EN ? en : zh);
+    const STATIC_EN = { "複利計算": "Compound", "回版本總覽": "Back to version list", "複利計算機": "Compound Calculator", "v6 · 報酬 / 多階段 / 退休": "v6 · returns / stages / retirement", "功能": "Sections", "多階段": "Multi-stage", "退休規劃": "Retirement", "切換深淺色": "Toggle dark mode", "分享目前試算": "Share this scenario", "選擇想算的項目，其餘填入已知條件，結果即時更新。": "Pick what to solve for and fill in what you know — results update as you type.", "我想算": "Solve for", "最終金額": "Final value", "年化報酬率": "Annual return", "定期定額": "Contribution", "所需本金": "Principal", "所需時間": "Time", "投資條件": "Inputs", "初始本金": "Initial principal", "元": "TWD", "目標金額": "Target value", "（期末本利和）": "(ending balance)", "投資期間": "Duration", "期間單位": "Duration unit", "年": "yr", "月": "mo", "投入頻率": "Frequency", "每月": "Monthly", "每季": "Quarterly", "每半年": "Semi-annual", "每年": "Yearly", "定期金額方向": "Recurring amount", "定期投入": "Contribute", "定期領回": "Withdraw", "每月投入": "Monthly contribution", "年化報酬率滑桿": "Annual return slider", "定存 2%": "Deposit 2%", "債券 4%": "Bonds 4%", "股債 6%": "60/40 6%", "股票 8%": "Stocks 8%", "進階設定": "Advanced", "投入時點・複利基準・調升・通膨": "timing · rate basis · step-up · inflation", "定期金額時點": "Payment timing", "期末（一般）": "End of period", "期初": "Start of period", "報酬率基準": "Rate basis", "有效年化": "Effective annual", "名目年利率": "Nominal APR", "定期金額每年調升": "Yearly step-up", "通膨率": "Inflation", "重設為預設值": "Reset to defaults", "資產成長": "Growth", "逐年明細": "Year by year", "多階段計畫": "Multi-stage plan", "每個階段的期末資產自動接續到下一階段，例如「累積期 → 加碼期 → 退休提領期」。": "Each stage starts from the previous stage’s ending balance — e.g. accumulate → boost → retire and withdraw.", "起始本金": "Starting principal", "新增階段": "Add stage", "投入時點・複利基準": "timing · rate basis", "資產變化": "Balance over time", "階段摘要": "Stage summary", "4% 法則估算生活費本金，加上買房目標，並考慮通膨與退休後的提領。": "Uses the 4% rule for living costs plus an optional home purchase, adjusted for inflation and post-retirement withdrawals.", "我想知道": "I want to know", "幾歲能退休": "When can I retire", "每月要存多少": "Monthly savings", "現在要有多少": "Savings needed now", "目前狀況": "Where you are now", "目前年齡": "Current age", "歲": "yrs", "目標退休年齡": "Target retirement age", "目前已投資資產": "Invested assets today", "退休生活": "Retirement lifestyle", "（以今日幣值輸入）": "(in today’s money)", "每月生活開銷": "Monthly living expenses", "退休後每月其他收入": "Other monthly income in retirement", "（勞保年金、勞退、租金…）": "(pension, rent…)", "安全提領率": "Safe withdrawal rate", "保守 3%": "Cautious 3%", "4% 法則": "4% rule", "買房目標": "Home purchase", "是否納入買房": "Include a home purchase", "納入買房目標": "Include a home purchase", "台北市房價（今日價格）": "Taipei home price (today)", "房價年漲幅": "Home price growth / yr", "假設退休當年一次付清買房；漲幅 0% 即以今日房價計。": "Assumes the home is paid in full the year you retire; 0% growth uses today’s price.", "投資假設": "Assumptions", "退休前年化報酬（ETF）": "Return before retirement (ETF)", "退休前年化報酬滑桿": "Return before retirement slider", "保守 6%": "Cautious 6%", "樂觀 10%": "Optimistic 10%", "退休後年化報酬": "Return after retirement", "每月投入每年調升": "Yearly step-up of contributions", "（例如隨加薪）": "(e.g. with raises)", "報酬率情境": "Return scenarios", "報酬率 ±2% 的差別": "what ±2% return changes", "一生資產走勢": "Lifetime balance", "目標怎麼算": "How the target is built", "房價參考：內政部實價登錄／房仲 2025–2026 台北市成交概況（中山、松山等），套房約 800–1,100 萬、舒適一房約 1,200–1,800 萬、兩房約 2,000–3,000 萬；實際依地段、屋齡、坪數而異。4% 法則源自美國歷史資料，報酬率皆為假設，非保證。": "Home prices: Taiwan MOI actual-price registry / broker data for Taipei 2025–2026 (Zhongshan, Songshan…): studio ~8–11M, comfortable 1-bed ~12–18M, 2-bed ~20–30M TWD; varies by location, age and size. The 4% rule comes from US historical data; all returns are assumptions, not guarantees.", "僅供教育與概算，不構成投資、稅務或理財建議。試算資料只存在你的瀏覽器中。": "For education and rough estimates only — not investment, tax or financial advice. Your inputs stay in your browser.", "其他版本": "Other versions", "回到結果": "Back to result" };
+    function translateStatic() {
+      if (!EN) return;
+      document.documentElement.lang = 'en';
+      document.title = 'Compound & Retirement Calculator v6';
+      const md = document.querySelector('meta[name="description"]');
+      if (md) md.setAttribute('content', 'Compound growth, annualized return (IRR), multi-stage plans and retirement planning: live results, growth charts, inflation adjustment, year-by-year tables; installable on your phone.');
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => (n.parentNode && /^(SCRIPT|STYLE)$/.test(n.parentNode.nodeName)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+      });
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach((n) => { const k = n.nodeValue.trim(); if (k && STATIC_EN[k] != null) n.nodeValue = n.nodeValue.replace(k, STATIC_EN[k]); });
+      $$('[aria-label],[title]').forEach((el) => ['aria-label', 'title'].forEach((a) => {
+        const v = el.getAttribute(a); if (v && STATIC_EN[v] != null) el.setAttribute(a, STATIC_EN[v]);
+      }));
+    }
+    const FREQ_NAME = EN ? { 12: 'Monthly', 4: 'Quarterly', 2: 'Semi-annual', 1: 'Yearly' } : { 12: '每月', 4: '每季', 2: '每半年', 1: '每年' };
+    const PER_NAME = EN ? { 12: 'month', 4: 'quarter', 2: 'half-year', 1: 'year' } : FREQ_NAME;
 
     function trimNum(v, d) {
       return Number(v.toFixed(d)).toLocaleString('zh-TW', { maximumFractionDigits: d });
     }
     function fmt(x) { return (x == null || !isFinite(x)) ? '－' : nf.format(Math.round(x)); }
-    function fmtMoney(x) { return (x == null || !isFinite(x)) ? '－' : fmt(x) + ' 元'; }
+    function fmtMoney(x) { return (x == null || !isFinite(x)) ? '－' : fmt(x) + T(' 元', ' TWD'); }
     function fmtWan(x) {
       if (x == null || !isFinite(x)) return '－';
       const a = Math.abs(x), s = x < 0 ? '-' : '';
+      if (EN) {
+        if (a >= 1e9) return s + trimNum(a / 1e9, 2) + 'B';
+        if (a >= 1e6) return s + trimNum(a / 1e6, a >= 1e7 ? 1 : 2) + 'M';
+        if (a >= 1e4) return s + trimNum(a / 1e3, 0) + 'K';
+        return s + fmt(a);
+      }
       if (a >= 1e8) return s + trimNum(a / 1e8, 2) + ' 億';
       if (a >= 1e7) return s + trimNum(a / 1e4, 0) + ' 萬';
       if (a >= 1e4) return s + trimNum(a / 1e4, 1) + ' 萬';
@@ -800,12 +838,14 @@
       if (years == null || !isFinite(years)) return '－';
       let m = Math.round(years * 12);
       const y = Math.floor(m / 12); m = m % 12;
+      if (EN) return y === 0 ? `${m} mo` : (m ? `${y} yr ${m} mo` : `${y} yr${y === 1 ? '' : 's'}`);
       if (y === 0) return m + ' 個月';
       return m ? `${y} 年 ${m} 個月` : `${y} 年`;
     }
     function fmtAge(age) {
       let m = Math.round(age * 12);
       const y = Math.floor(m / 12); m = m % 12;
+      if (EN) return m ? `age ${y} + ${m} mo` : `age ${y}`;
       return m ? `${y} 歲 ${m} 個月` : `${y} 歲`;
     }
     function signed(x) { return (x > 0 ? '+' : '') + fmt(x); }
@@ -925,31 +965,31 @@
       const used = Object.assign({}, base);
       const res = { mode: s.mode, k, dir };
 
-      if (s.mode !== 'time' && !(base.n > 0)) return { error: '請輸入投資期間' };
+      if (s.mode !== 'time' && !(base.n > 0)) return { error: T('請輸入投資期間', 'Enter a duration') };
       if (s.mode === 'pmt') {
         const A = sim({ pay: 0 }).fv, B = sim({ pay: 1 }).fv - A;
-        if (Math.abs(B) < 1e-12) return { error: '無法計算定期金額' };
+        if (Math.abs(B) < 1e-12) return { error: T('無法計算定期金額', 'Cannot solve for the recurring amount') };
         let pay = (target - A) / B;
         if (pay < 0) {
           res.note = dir > 0
-            ? `只靠初始本金複利就會超過目標，不需定期投入（甚至可${FREQ_NAME[k]}領回 ${fmt(-pay)} 元）。`
-            : `需要${FREQ_NAME[k]}再投入 ${fmt(-pay)} 元才能達到目標，無法領回。`;
+            ? T(`只靠初始本金複利就會超過目標，不需定期投入（甚至可${FREQ_NAME[k]}領回 ${fmt(-pay)} 元）。`, `The initial principal alone beats the target — no contributions needed (you could even withdraw ${fmt(-pay)} TWD per ${PER_NAME[k]}).`)
+            : T(`需要${FREQ_NAME[k]}再投入 ${fmt(-pay)} 元才能達到目標，無法領回。`, `You would need to add ${fmt(-pay)} TWD per ${PER_NAME[k]} to reach the target — no withdrawals possible.`);
           pay = 0;
         }
         used.pay = pay; res.value = pay;
       } else if (s.mode === 'principal') {
         const C = sim({ P: 1, pay: 0 }).fv, D = sim({ P: 0 }).fv;
         let P = (target - D) / C;
-        if (P < 0) { res.note = '只靠定期投入就能超過目標，不需要初始本金。'; P = 0; }
+        if (P < 0) { res.note = T('只靠定期投入就能超過目標，不需要初始本金。', 'Contributions alone beat the target — no initial principal needed.'); P = 0; }
         used.P = P; res.value = P;
       } else if (s.mode === 'rate') {
         const f = (r) => simulate(Object.assign({}, base, { i: perRate(r, k, s.basis) })).fv - target;
         const r = solveRoot(f, RATE_GRID, 6);
-        if (r == null) return { error: '在 -99% ～ 1000% 之間找不到符合條件的報酬率，請檢查目標金額。' };
+        if (r == null) return { error: T('在 -99% ～ 1000% 之間找不到符合條件的報酬率，請檢查目標金額。', 'No return between −99% and 1000% fits — check the target value.') };
         used.i = perRate(r, k, s.basis); res.value = r;
       } else if (s.mode === 'time') {
         const n = solveTime(base, target);
-        if (n == null) return { error: '以目前條件，100 年內都無法達到目標金額。試著提高投入或報酬率。' };
+        if (n == null) return { error: T('以目前條件，100 年內都無法達到目標金額。試著提高投入或報酬率。', 'The target can’t be reached within 100 years — try contributing more or a higher return.') };
         used.n = n; res.value = n / k;
       }
       const out = simulate(Object.assign({}, used, { clamp: true }));
@@ -1001,7 +1041,7 @@
         bal = r.fv;
         const gain = bal - startBal - (stIn - stOut);
         stages.push({ idx, start: t, end: t + years, startBal, endBal: bal, stIn, stOut, gain, depleted: r.depleted != null ? t + r.depleted / k : null });
-        if (idx > 0) markers.push({ x: t, label: '階段' + (idx + 1) });
+        if (idx > 0) markers.push({ x: t, label: T('階段', 'Stage ') + (idx + 1) });
         t += years;
       });
       flows.push({ t, a: bal });
@@ -1012,9 +1052,9 @@
     function retireCompute(s, rateOverride) {
       const rate = rateOverride != null ? rateOverride : num(s.rate);
       const age = num(s.age, NaN);
-      if (!(age >= 0 && age < 100)) return { error: '請輸入目前年齡（0–99 歲）' };
+      if (!(age >= 0 && age < 100)) return { error: T('請輸入目前年齡（0–99 歲）', 'Enter your current age (0–99)') };
       const wr = num(s.wr) / 100;
-      if (!(wr > 0)) return { error: '安全提領率需大於 0%' };
+      if (!(wr > 0)) return { error: T('安全提領率需大於 0%', 'Withdrawal rate must be above 0%') };
       const i = perRate(rate, 12, 'effective'), ip = perRate(num(s.postRate), 12, 'effective');
       const infl = num(s.inflation) / 100, hg = num(s.houseGrowth) / 100, g = 1 + num(s.growth) / 100;
       const netExp = Math.max(0, num(s.expense) - num(s.otherIncome));
@@ -1037,23 +1077,23 @@
         const { arr } = accum(P, pay, maxM);
         M = -1;
         for (let m = 0; m <= maxM; m++) { if (arr[m] >= targetAt(m).total - 0.5) { M = m; break; } }
-        if (M < 0) return { error: '以目前條件，到 100 歲前都無法達成退休目標', hint: '試試提高每月投入、降低開銷、調整買房目標或提領率。' };
-        if (M === 0) note = '你現在的資產就已達成退休目標 🎉';
+        if (M < 0) return { error: T('以目前條件，到 100 歲前都無法達成退休目標', 'With these inputs the goal isn’t reached before age 100'), hint: T('試試提高每月投入、降低開銷、調整買房目標或提領率。', 'Try saving more each month, spending less, or adjusting the home goal or withdrawal rate.') };
+        if (M === 0) note = T('你現在的資產就已達成退休目標 🎉', 'Your current assets already meet the goal 🎉');
         value = age + M / 12;
       } else {
         const ra = num(s.retireAge, NaN);
-        if (!(ra > age)) return { error: '目標退休年齡需大於目前年齡' };
+        if (!(ra > age)) return { error: T('目標退休年齡需大於目前年齡', 'Target retirement age must be above your current age') };
         M = Math.round((Math.min(ra, 100) - age) * 12);
         const tgt = targetAt(M).total;
         if (s.mode === 'pmt') {
           const A = accum(P, 0, M).arr[M], B = accum(P, 1, M).arr[M] - A;
           pay = (tgt - A) / B;
-          if (pay <= 0) { note = '目前資產複利成長就足以在目標年齡退休，不需再投入 🎉'; pay = 0; }
+          if (pay <= 0) { note = T('目前資產複利成長就足以在目標年齡退休，不需再投入 🎉', 'Your current assets will grow enough on their own — no more saving needed 🎉'); pay = 0; }
           value = pay;
         } else {
           const C = Math.pow(1 + i, M), D = accum(0, pay, M).arr[M];
           P = (tgt - D) / C;
-          if (P <= 0) { note = '光靠每月投入就能達標，不需要額外本金 🎉'; P = 0; }
+          if (P <= 0) { note = T('光靠每月投入就能達標，不需要額外本金 🎉', 'Monthly saving alone gets you there — no extra principal needed 🎉'); P = 0; }
           value = P;
         }
       }
@@ -1152,7 +1192,7 @@
       $$('[data-set]', root).forEach(b => b.classList.toggle('on', String(getPath(st, b.dataset.set)) === b.dataset.val));
       $$('[data-wan]', root).forEach(el => {
         const v = getPath(st, el.dataset.wan);
-        el.textContent = (v != null && Math.abs(v) >= 10000) ? '≈ ' + fmtWan(v) : '';
+        el.textContent = (v != null && Math.abs(v) >= 10000) ? '≈ ' + fmtWan(v) + (EN ? ' TWD' : '') : '';
       });
       const mode = st.mode;
       $$('[data-hide-when]', root).forEach(el => el.classList.toggle('hide', el.dataset.hideWhen.split(',').includes(mode)));
@@ -1229,7 +1269,7 @@
         const view = act.dataset.view;
         state[view] = clone(DEFAULTS[view]);
         if (view === 'multi') renderStages();
-        refresh(view); toast('已重設');
+        refresh(view); toast(T('已重設', 'Reset'));
       } else if (a === 'stage-add') {
         const st = state.multi.stages;
         const prev = st[st.length - 1];
@@ -1247,7 +1287,7 @@
         refresh('multi');
       } else if (a === 'copy') {
         const text = act.closest('.hero').dataset.copy || '';
-        copyText(text).then(ok => toast(ok ? '已複製結果' : '無法複製'));
+        copyText(text).then(ok => toast(ok ? T('已複製結果', 'Result copied') : T('無法複製', 'Couldn’t copy')));
       }
     });
 
@@ -1274,7 +1314,7 @@
 
     /* ================= UI pieces ================= */
     function initHero(el) {
-      el.innerHTML = '<div class="hero-top"><span class="hero-label"></span><button type="button" class="hero-copy" data-act="copy" aria-label="複製結果"><svg class="ico"><use href="#i-copy"/></svg></button></div>' +
+      el.innerHTML = '<div class="hero-top"><span class="hero-label"></span><button type="button" class="hero-copy" data-act="copy" aria-label="' + T('複製結果', 'Copy result') + '"><svg class="ico"><use href="#i-copy"/></svg></button></div>' +
         '<div class="hero-value"></div><div class="hero-sub"></div><div class="hero-bar hide"><div class="bar"><i class="b1"></i><i class="b2"></i></div><div class="bar-legend"><span class="l1"></span><span class="l2"></span></div></div>' +
         '<div class="hero-note hide"></div><div class="hero-stats"></div>';
     }
@@ -1295,7 +1335,7 @@
       } else bar.classList.add('hide');
       $('.hero-stats', el).innerHTML = (h.stats || []).map(st =>
         `<div class="hero-stat"><div class="k">${esc(st[0])}</div><div class="v">${esc(st[1])}</div>${st[2] ? `<div class="s">${esc(st[2])}</div>` : ''}</div>`).join('');
-      el.dataset.copy = h.copy || `${h.label}：${h.value}${h.sub ? '（' + h.sub + '）' : ''}`;
+      el.dataset.copy = h.copy || (EN ? `${h.label}: ${h.value}${h.sub ? ' (' + h.sub + ')' : ''}` : `${h.label}：${h.value}${h.sub ? '（' + h.sub + '）' : ''}`);
       el._mini = { label: h.label, value: h.value, error: !!h.error, good: !!h.good };
       if (el.closest('.view').classList.contains('active')) updateMini();
     }
@@ -1314,6 +1354,12 @@
     }
     function axisFmt(v) {
       const a = Math.abs(v);
+      if (EN) {
+        if (a >= 1e9) return trimNum(v / 1e9, 1) + 'B';
+        if (a >= 1e6) return trimNum(v / 1e6, a >= 1e7 ? 0 : 1) + 'M';
+        if (a >= 1e3) return trimNum(v / 1e3, 0) + 'K';
+        return trimNum(v, 0);
+      }
       if (a >= 1e8) return trimNum(v / 1e8, 1) + '億';
       if (a >= 1e4) return trimNum(v / 1e4, a >= 1e5 ? 0 : 1) + '萬';
       return trimNum(v, 0);
@@ -1323,7 +1369,7 @@
       host._data = data;
       const legend = $('#' + host.id + '-legend');
       if (!data || data.xs.length < 2) {
-        host.innerHTML = '<div class="chart-empty">' + (data && data.empty ? esc(data.empty) : '輸入條件後顯示圖表') + '</div>';
+        host.innerHTML = '<div class="chart-empty">' + (data && data.empty ? esc(data.empty) : T('輸入條件後顯示圖表', 'Enter inputs to see the chart')) + '</div>';
         if (legend) legend.innerHTML = '';
         return;
       }
@@ -1339,7 +1385,7 @@
       const X = (v) => pad.l + (x1 === x0 ? 0 : (v - x0) / (x1 - x0)) * (W - pad.l - pad.r);
       const Y = (v) => pad.t + (1 - (v - yt.min) / (yt.max - yt.min)) * (H - pad.t - pad.b);
       const uid = host.id;
-      let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(data.aria || '圖表')}"><defs>`;
+      let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(data.aria || T('圖表', 'Chart'))}"><defs>`;
       series.forEach((se, j) => {
         if (se.area) s += `<linearGradient id="${uid}-g${j}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:${se.color};stop-opacity:${se.areaOpacity || 0.3}"/><stop offset="1" style="stop-color:${se.color};stop-opacity:0.02"/></linearGradient>`;
       });
@@ -1424,50 +1470,50 @@
     function renderCalc() {
       const s = state.calc;
       syncView('calc');
-      const k = num(s.freq, 12), fname = FREQ_NAME[k] || '每期', act = s.dir === 'out' ? '領回' : '投入';
-      $('#c-pay-label').textContent = fname + act;
+      const k = num(s.freq, 12), fname = FREQ_NAME[k] || T('每期', 'Per period'), act = s.dir === 'out' ? T('領回', 'withdrawal') : T('投入', 'contribution');
+      $('#c-pay-label').textContent = EN ? `${fname} ${act}` : fname + act;
       const r = num(s.rate);
       $('#c-basis-help').textContent = s.basis === 'effective'
-        ? `年化 ${fmtPct(r)} = ${fname}複利名目 ${fmtPct(nominalFromEff(r, k))}，與基金、ETF 的年化報酬意義相同。`
-        : `名目 ${fmtPct(r)}（${fname}複利）= 有效年化 ${fmtPct(effFromNominal(r, k))}，類似銀行利率標示。`;
+        ? T(`年化 ${fmtPct(r)} = ${fname}複利名目 ${fmtPct(nominalFromEff(r, k))}，與基金、ETF 的年化報酬意義相同。`, `${fmtPct(r)} effective = ${fmtPct(nominalFromEff(r, k))} nominal compounded ${fname.toLowerCase()} — the same meaning as a fund or ETF’s annualized return.`)
+        : T(`名目 ${fmtPct(r)}（${fname}複利）= 有效年化 ${fmtPct(effFromNominal(r, k))}，類似銀行利率標示。`, `${fmtPct(r)} nominal (compounded ${fname.toLowerCase()}) = ${fmtPct(effFromNominal(r, k))} effective — like a bank’s quoted rate.`);
 
       const res = calcCompute(s);
       last.calc = res;
       const hero = $('#calc-hero');
       if (res.error) {
-        setHero(hero, { error: true, label: '無法計算', value: '—', sub: res.error });
+        setHero(hero, { error: true, label: T('無法計算', 'Can’t calculate'), value: '—', sub: res.error });
         drawChart($('#calc-chart'), { xs: [], empty: res.error });
         $('#calc-table').innerHTML = '';
         return;
       }
       const yrs = res.years, infl = num(s.inflation);
       let label, value, sub, good = false;
-      if (s.mode === 'fv') { label = `${fmtDur(yrs)}後的最終金額`; value = fmtMoney(res.fv); sub = '≈ ' + fmtWan(res.fv); }
+      if (s.mode === 'fv') { label = T(`${fmtDur(yrs)}後的最終金額`, `Final value after ${fmtDur(yrs)}`); value = fmtMoney(res.fv); sub = '≈ ' + fmtWan(res.fv); }
       else if (s.mode === 'rate') {
-        label = '需要的年化報酬率'; value = fmtPct(res.value);
-        sub = s.basis === 'effective' ? `相當於${fname}複利名目年利率 ${fmtPct(nominalFromEff(res.value, k))}` : `相當於有效年化 ${fmtPct(effFromNominal(res.value, k))}`;
-      } else if (s.mode === 'principal') { label = '需要的初始本金'; value = fmtMoney(res.value); sub = `≈ ${fmtWan(res.value)} · ${fmtDur(yrs)}後達 ${fmtWan(num(s.target))}`; }
+        label = T('需要的年化報酬率', 'Required annual return'); value = fmtPct(res.value);
+        sub = s.basis === 'effective' ? T(`相當於${fname}複利名目年利率 ${fmtPct(nominalFromEff(res.value, k))}`, `= ${fmtPct(nominalFromEff(res.value, k))} nominal, compounded ${fname.toLowerCase()}`) : T(`相當於有效年化 ${fmtPct(effFromNominal(res.value, k))}`, `= ${fmtPct(effFromNominal(res.value, k))} effective annual`);
+      } else if (s.mode === 'principal') { label = T('需要的初始本金', 'Required initial principal'); value = fmtMoney(res.value); sub = T(`≈ ${fmtWan(res.value)} · ${fmtDur(yrs)}後達 ${fmtWan(num(s.target))}`, `≈ ${fmtWan(res.value)} · reaches ${fmtWan(num(s.target))} in ${fmtDur(yrs)}`); }
       else if (s.mode === 'time') {
-        label = '達成目標所需時間';
-        if (res.value === 0) { value = '已達成'; sub = '初始本金已達目標金額'; good = true; }
-        else { value = fmtDur(yrs); sub = `約 ${trimNum(yrs, 1)} 年後達到 ${fmtWan(num(s.target))}`; }
-      } else { label = `${fname}需要${act}`; value = fmtMoney(res.value); sub = `持續 ${fmtDur(yrs)}，期末 ${fmtWan(num(s.target))}`; }
+        label = T('達成目標所需時間', 'Time to reach the target');
+        if (res.value === 0) { value = T('已達成', 'Reached'); sub = T('初始本金已達目標金額', 'The initial principal already meets the target'); good = true; }
+        else { value = fmtDur(yrs); sub = T(`約 ${trimNum(yrs, 1)} 年後達到 ${fmtWan(num(s.target))}`, `Reaches ${fmtWan(num(s.target))} in about ${trimNum(yrs, 1)} years`); }
+      } else { label = T(`${fname}需要${act}`, `Required ${fname.toLowerCase()} ${act}`); value = fmtMoney(res.value); sub = T(`持續 ${fmtDur(yrs)}，期末 ${fmtWan(num(s.target))}`, `For ${fmtDur(yrs)}, ending at ${fmtWan(num(s.target))}`); }
 
       const stats = [];
-      if (s.mode !== 'fv') stats.push(['期末資產', fmtWan(res.fv)]);
-      if (res.dir > 0) stats.push(['累計投入', fmtWan(res.totalIn)]);
-      else { stats.push(['初始本金', fmtWan(res.used.P)]); stats.push(['累計領回', fmtWan(res.totalOut)]); }
-      stats.push(['投資收益', (res.gain >= 0 ? '+' : '') + fmtWan(res.gain)]);
-      if (infl && yrs > 0) stats.push(['今日購買力', fmtWan(res.fv / Math.pow(1 + infl / 100, yrs)), `通膨 ${fmtPct(infl, 1)} 折現`]);
+      if (s.mode !== 'fv') stats.push([T('期末資產', 'Ending balance'), fmtWan(res.fv)]);
+      if (res.dir > 0) stats.push([T('累計投入', 'Total invested'), fmtWan(res.totalIn)]);
+      else { stats.push([T('初始本金', 'Initial principal'), fmtWan(res.used.P)]); stats.push([T('累計領回', 'Total withdrawn'), fmtWan(res.totalOut)]); }
+      stats.push([T('投資收益', 'Investment gain'), (res.gain >= 0 ? '+' : '') + fmtWan(res.gain)]);
+      if (infl && yrs > 0) stats.push([T('今日購買力', 'In today’s money'), fmtWan(res.fv / Math.pow(1 + infl / 100, yrs)), T(`通膨 ${fmtPct(infl, 1)} 折現`, `discounted at ${fmtPct(infl, 1)} inflation`)]);
       const effRate = s.mode === 'rate' ? (s.basis === 'effective' ? res.value : effFromNominal(res.value, k)) : (s.basis === 'effective' ? r : effFromNominal(r, k));
-      if (effRate > 0 && res.dir > 0) stats.push(['資產翻倍', fmtDur(Math.log(2) / Math.log(1 + effRate / 100)), '單筆複利']);
+      if (effRate > 0 && res.dir > 0) stats.push([T('資產翻倍', 'Doubling time'), fmtDur(Math.log(2) / Math.log(1 + effRate / 100)), T('單筆複利', 'lump sum')]);
 
       let note = res.note || null;
-      if (res.depletedYears != null) note = `⚠ 第 ${fmtDur(res.depletedYears)}時資產已耗盡，之後無法再領回。`;
+      if (res.depletedYears != null) note = T(`⚠ 第 ${fmtDur(res.depletedYears)}時資產已耗盡，之後無法再領回。`, `⚠ The balance runs out after ${fmtDur(res.depletedYears)}; later withdrawals can’t be paid.`);
       let bar = null;
       if (res.dir > 0 && res.fv > 0 && res.gain >= 0) {
         const a = res.totalIn / res.fv;
-        bar = { a, b: 1 - a, la: `本金 ${Math.round(a * 100)}%`, lb: `收益 ${Math.round((1 - a) * 100)}%` };
+        bar = { a, b: 1 - a, la: T(`本金 ${Math.round(a * 100)}%`, `Principal ${Math.round(a * 100)}%`), lb: T(`收益 ${Math.round((1 - a) * 100)}%`, `Gains ${Math.round((1 - a) * 100)}%`) };
       }
       setHero(hero, { label, value, sub, stats, note, bar, good });
 
@@ -1482,14 +1528,14 @@
         }
       });
       const series = [
-        { name: '總資產', ys: tot, color: cssVar('--c-total'), area: true },
-        { name: res.dir > 0 ? '累計投入本金' : '累計領回', ys: netv, color: cssVar('--c-contrib'), area: true, areaOpacity: .35, width: 1.75 }
+        { name: T('總資產', 'Balance'), ys: tot, color: cssVar('--c-total'), area: true },
+        { name: res.dir > 0 ? T('累計投入本金', 'Total invested') : T('累計領回', 'Total withdrawn'), ys: netv, color: cssVar('--c-contrib'), area: true, areaOpacity: .35, width: 1.75 }
       ];
-      if (infl) series.push({ name: '今日購買力', ys: real, color: cssVar('--c-real'), dash: true, width: 1.75 });
+      if (infl) series.push({ name: T('今日購買力', 'In today’s money'), ys: real, color: cssVar('--c-real'), dash: true, width: 1.75 });
       drawChart($('#calc-chart'), {
-        xs, series, aria: '資產成長圖',
-        xFrac: short, xFmt: (v) => short ? Math.round(v * 12) + '月' : trimNum(v, 0) + '年',
-        tipTitle: (v) => v === 0 ? '開始' : '第 ' + fmtDur(v)
+        xs, series, aria: T('資產成長圖', 'Growth chart'),
+        xFrac: short, xFmt: (v) => short ? Math.round(v * 12) + T('月', 'm') : trimNum(v, 0) + T('年', 'y'),
+        tipTitle: (v) => v === 0 ? T('開始', 'Start') : T('第 ' + fmtDur(v), 'After ' + fmtDur(v))
       });
 
       // Year-by-year table.
@@ -1504,9 +1550,9 @@
         if (infl) row.push(fmt(p.bal / Math.pow(1 + infl / 100, yy)));
         rows.push(row); prev = p;
       }
-      const head = ['年', res.dir > 0 ? '本年投入' : '本年領回', '本年收益', '累計淨投入', '年末資產'];
-      if (infl) head.push('今日購買力');
-      $('#calc-table').innerHTML = rows.length ? table(head, rows) : '<p class="muted" style="padding:16px">期間少於一年</p>';
+      const head = EN ? ['Year', res.dir > 0 ? 'Invested' : 'Withdrawn', 'Gain', 'Net invested', 'Ending balance'] : ['年', res.dir > 0 ? '本年投入' : '本年領回', '本年收益', '累計淨投入', '年末資產'];
+      if (infl) head.push(T('今日購買力', 'In today’s money'));
+      $('#calc-table').innerHTML = rows.length ? table(head, rows) : '<p class="muted" style="padding:16px">' + T('期間少於一年', 'Less than one year') + '</p>';
     }
 
     /* ================= Render: 多階段 ================= */
@@ -1516,21 +1562,21 @@
         <div class="card stage" data-idx="${idx}">
           <div class="stage-head">
             <span class="stage-num">${idx + 1}</span>
-            <div class="stage-meta"><div class="stage-title">階段 ${idx + 1}</div><div class="stage-range" data-stage-range="${idx}"></div></div>
+            <div class="stage-meta"><div class="stage-title">${T('階段', 'Stage')} ${idx + 1}</div><div class="stage-range" data-stage-range="${idx}"></div></div>
             <div class="stage-actions">
-              <button type="button" class="icon-btn sm" data-act="stage-dup" data-idx="${idx}" aria-label="複製階段 ${idx + 1}" title="複製"><svg class="ico"><use href="#i-copy"/></svg></button>
-              <button type="button" class="icon-btn sm" data-act="stage-del" data-idx="${idx}" aria-label="刪除階段 ${idx + 1}" title="刪除" ${st.length <= 1 ? 'disabled' : ''}><svg class="ico"><use href="#i-trash"/></svg></button>
+              <button type="button" class="icon-btn sm" data-act="stage-dup" data-idx="${idx}" aria-label="${T('複製階段', 'Duplicate stage')} ${idx + 1}" title="${T('複製', 'Duplicate')}"><svg class="ico"><use href="#i-copy"/></svg></button>
+              <button type="button" class="icon-btn sm" data-act="stage-del" data-idx="${idx}" aria-label="${T('刪除階段', 'Delete stage')} ${idx + 1}" title="${T('刪除', 'Delete')}" ${st.length <= 1 ? 'disabled' : ''}><svg class="ico"><use href="#i-trash"/></svg></button>
             </div>
           </div>
           <div class="fields">
-            <div class="field full"><div class="seg" data-k="stages.${idx}.dir"><button type="button" data-v="in">定期投入</button><button type="button" data-v="out">定期領回</button></div></div>
-            <label class="field"><span class="field-label">期間</span><span class="input-wrap"><input data-k="stages.${idx}.years" data-type="num" inputmode="decimal" placeholder="0"><span class="unit">年</span></span></label>
-            <label class="field"><span class="field-label">年化報酬率</span><span class="input-wrap"><input data-k="stages.${idx}.rate" data-type="num" inputmode="decimal" placeholder="0"><span class="unit">%</span></span></label>
-            <label class="field"><span class="field-label">定期金額</span><span class="input-wrap"><input data-k="stages.${idx}.payment" data-type="money" inputmode="numeric" placeholder="0"><span class="unit">元</span></span></label>
-            <label class="field"><span class="field-label">頻率</span><span class="input-wrap select"><select data-k="stages.${idx}.freq"><option value="12">每月</option><option value="4">每季</option><option value="2">每半年</option><option value="1">每年</option></select></span></label>
-            <label class="field"><span class="field-label">金額每年調升</span><span class="input-wrap"><input data-k="stages.${idx}.growth" data-type="num" inputmode="decimal" placeholder="0"><span class="unit">%</span></span></label>
-            <div class="field"><span class="field-label">開始時一次性</span><span class="input-wrap"><button type="button" class="sign-btn" data-act="sign" data-path="stages.${idx}.lump" aria-label="切換正負號">±</button><input data-k="stages.${idx}.lump" data-type="money" data-neg="1" inputmode="numeric" placeholder="0" aria-label="階段 ${idx + 1} 開始時一次性金額"><span class="unit">元</span></span></div>
-            <span class="help field full">一次性金額：正數＝加碼（如年終），負數＝提出（如買房頭期款）。</span>
+            <div class="field full"><div class="seg" data-k="stages.${idx}.dir"><button type="button" data-v="in">${T('定期投入', 'Contribute')}</button><button type="button" data-v="out">${T('定期領回', 'Withdraw')}</button></div></div>
+            <label class="field"><span class="field-label">${T('期間', 'Duration')}</span><span class="input-wrap"><input data-k="stages.${idx}.years" data-type="num" inputmode="decimal" placeholder="0"><span class="unit">${T('年', 'yrs')}</span></span></label>
+            <label class="field"><span class="field-label">${T('年化報酬率', 'Annual return')}</span><span class="input-wrap"><input data-k="stages.${idx}.rate" data-type="num" inputmode="decimal" placeholder="0"><span class="unit">%</span></span></label>
+            <label class="field"><span class="field-label">${T('定期金額', 'Recurring amount')}</span><span class="input-wrap"><input data-k="stages.${idx}.payment" data-type="money" inputmode="numeric" placeholder="0"><span class="unit">${T('元', 'TWD')}</span></span></label>
+            <label class="field"><span class="field-label">${T('頻率', 'Frequency')}</span><span class="input-wrap select"><select data-k="stages.${idx}.freq"><option value="12">${FREQ_NAME[12]}</option><option value="4">${FREQ_NAME[4]}</option><option value="2">${FREQ_NAME[2]}</option><option value="1">${FREQ_NAME[1]}</option></select></span></label>
+            <label class="field"><span class="field-label">${T('金額每年調升', 'Yearly step-up')}</span><span class="input-wrap"><input data-k="stages.${idx}.growth" data-type="num" inputmode="decimal" placeholder="0"><span class="unit">%</span></span></label>
+            <div class="field"><span class="field-label">${T('開始時一次性', 'One-off at start')}</span><span class="input-wrap"><button type="button" class="sign-btn" data-act="sign" data-path="stages.${idx}.lump" aria-label="${T('切換正負號', 'Toggle sign')}">±</button><input data-k="stages.${idx}.lump" data-type="money" data-neg="1" inputmode="numeric" placeholder="0" aria-label="${T('階段', 'Stage')} ${idx + 1} ${T('開始時一次性金額', 'one-off amount at start')}"><span class="unit">${T('元', 'TWD')}</span></span></div>
+            <span class="help field full">${T('一次性金額：正數＝加碼（如年終），負數＝提出（如買房頭期款）。', 'One-off amount: positive = top-up (e.g. a bonus), negative = withdrawal (e.g. a down payment).')}</span>
           </div>
           <div class="stage-result" data-stage-result="${idx}"></div>
         </div>`).join('');
@@ -1543,45 +1589,45 @@
       last.multi = res;
       res.stages.forEach(st => {
         const rng = $(`[data-stage-range="${st.idx}"]`), out = $(`[data-stage-result="${st.idx}"]`);
-        if (rng) rng.textContent = `第 ${trimNum(st.start, 1)} – ${trimNum(st.end, 1)} 年`;
-        if (out) out.innerHTML = `<span>期末 <b>${fmtWan(st.endBal)}</b></span><span>收益 <b>${(st.gain >= 0 ? '+' : '') + fmtWan(st.gain)}</b></span>` +
-          (st.depleted != null ? `<span class="warn">⚠ 第 ${trimNum(st.depleted, 1)} 年資產耗盡</span>` : '');
+        if (rng) rng.textContent = T(`第 ${trimNum(st.start, 1)} – ${trimNum(st.end, 1)} 年`, `Years ${trimNum(st.start, 1)}–${trimNum(st.end, 1)}`);
+        if (out) out.innerHTML = `<span>${T('期末', 'Ends at')} <b>${fmtWan(st.endBal)}</b></span><span>${T('收益', 'Gain')} <b>${(st.gain >= 0 ? '+' : '') + fmtWan(st.gain)}</b></span>` +
+          (st.depleted != null ? `<span class="warn">⚠ ${T(`第 ${trimNum(st.depleted, 1)} 年資產耗盡`, `Runs out in year ${trimNum(st.depleted, 1)}`)}</span>` : '');
       });
       const dep = res.stages.find(x => x.depleted != null);
       const stats = [
-        ['累計投入', fmtWan(res.totalIn), '含起始本金'],
-        ['累計領回', fmtWan(res.totalOut)],
-        ['總收益', (res.gain >= 0 ? '+' : '') + fmtWan(res.gain)],
-        ['整體年化報酬（IRR）', res.irr == null ? '－' : fmtPct(res.irr), '依實際現金流計算'],
-        ['總期間', fmtDur(res.years)]
+        [T('累計投入', 'Total invested'), fmtWan(res.totalIn), T('含起始本金', 'incl. starting principal')],
+        [T('累計領回', 'Total withdrawn'), fmtWan(res.totalOut)],
+        [T('總收益', 'Total gain'), (res.gain >= 0 ? '+' : '') + fmtWan(res.gain)],
+        [T('整體年化報酬（IRR）', 'Overall return (IRR)'), res.irr == null ? '－' : fmtPct(res.irr), T('依實際現金流計算', 'from actual cash flows')],
+        [T('總期間', 'Total duration'), fmtDur(res.years)]
       ];
       setHero($('#multi-hero'), {
-        label: `${fmtDur(res.years)}後的最終資產`, value: fmtMoney(res.fv), sub: '≈ ' + fmtWan(res.fv), stats,
-        note: dep ? `⚠ 階段 ${dep.idx + 1} 的第 ${trimNum(dep.depleted, 1)} 年資產耗盡，之後的領回無法支付。` : null
+        label: T(`${fmtDur(res.years)}後的最終資產`, `Final balance after ${fmtDur(res.years)}`), value: fmtMoney(res.fv), sub: '≈ ' + fmtWan(res.fv), stats,
+        note: dep ? T(`⚠ 階段 ${dep.idx + 1} 的第 ${trimNum(dep.depleted, 1)} 年資產耗盡，之後的領回無法支付。`, `⚠ Stage ${dep.idx + 1} runs out in year ${trimNum(dep.depleted, 1)}; later withdrawals can’t be paid.`) : null
       });
       drawChart($('#multi-chart'), {
-        xs: res.xs, aria: '多階段資產變化圖', markers: res.markers,
+        xs: res.xs, aria: T('多階段資產變化圖', 'Multi-stage balance chart'), markers: res.markers,
         series: [
-          { name: '總資產', ys: res.totals, color: cssVar('--c-total'), area: true },
-          { name: '累計投入本金', ys: res.nets, color: cssVar('--c-contrib'), width: 1.75, dash: true }
+          { name: T('總資產', 'Balance'), ys: res.totals, color: cssVar('--c-total'), area: true },
+          { name: T('累計投入本金', 'Total invested'), ys: res.nets, color: cssVar('--c-contrib'), width: 1.75, dash: true }
         ],
-        xFmt: (v) => trimNum(v, 0) + '年', tipTitle: (v) => v === 0 ? '開始' : '第 ' + fmtDur(v)
+        xFmt: (v) => trimNum(v, 0) + T('年', 'y'), tipTitle: (v) => v === 0 ? T('開始', 'Start') : T('第 ' + fmtDur(v), 'After ' + fmtDur(v))
       });
-      $('#multi-table').innerHTML = table(['階段', '期間', '期初資產', '投入', '領回', '收益', '期末資產'],
-        res.stages.map(st => [String(st.idx + 1), `${trimNum(st.start, 1)}–${trimNum(st.end, 1)} 年`, fmt(st.startBal), fmt(st.stIn), fmt(st.stOut), { v: signed(st.gain), cls: st.gain >= 0 ? 'pos' : 'neg' }, fmt(st.endBal)]));
+      $('#multi-table').innerHTML = table(EN ? ['Stage', 'Years', 'Start', 'Invested', 'Withdrawn', 'Gain', 'End'] : ['階段', '期間', '期初資產', '投入', '領回', '收益', '期末資產'],
+        res.stages.map(st => [String(st.idx + 1), `${trimNum(st.start, 1)}–${trimNum(st.end, 1)}${T(' 年', '')}`, fmt(st.startBal), fmt(st.stIn), fmt(st.stOut), { v: signed(st.gain), cls: st.gain >= 0 ? 'pos' : 'neg' }, fmt(st.endBal)]));
     }
 
     /* ================= Render: 退休規劃 ================= */
     const HOUSE_PRESETS = [
-      { label: '套房 ~10坪', value: 9000000, note: '中山／松山中古套房，實價約 800–1,100 萬' },
-      { label: '一房一廳 ~13坪', value: 12000000, note: '常見成交約 1,000–1,300 萬' },
-      { label: '舒適一房 ~18坪', value: 15000000, note: '單人舒服住；約 1,200–1,800 萬' },
-      { label: '兩房 ~25坪', value: 25000000, note: '約 2,000–2,800 萬' },
-      { label: '精華地段', value: 30000000, note: '大安／信義等，約 2,500–3,500 萬以上' }
+      { label: T('套房 ~10坪', 'Studio ~33 m²'), value: 9000000, note: T('中山／松山中古套房，實價約 800–1,100 萬', 'Pre-owned studio in Zhongshan / Songshan, about 8–11M TWD') },
+      { label: T('一房一廳 ~13坪', '1-bed ~43 m²'), value: 12000000, note: T('常見成交約 1,000–1,300 萬', 'Typical sales about 10–13M TWD') },
+      { label: T('舒適一房 ~18坪', 'Roomy 1-bed ~60 m²'), value: 15000000, note: T('單人舒服住；約 1,200–1,800 萬', 'Comfortable for one; about 12–18M TWD') },
+      { label: T('兩房 ~25坪', '2-bed ~83 m²'), value: 25000000, note: T('約 2,000–2,800 萬', 'About 20–28M TWD') },
+      { label: T('精華地段', 'Prime district'), value: 30000000, note: T('大安／信義等，約 2,500–3,500 萬以上', 'Da’an / Xinyi etc., about 25–35M+ TWD') }
     ];
     function initHousePresets() {
       $('#r-house-presets').innerHTML = HOUSE_PRESETS.map(p =>
-        `<button type="button" class="chip" data-set="housePrice" data-val="${p.value}" data-note="${esc(p.note)}">${esc(p.label)} ${p.value / 10000}萬</button>`).join('');
+        `<button type="button" class="chip" data-set="housePrice" data-val="${p.value}" data-note="${esc(p.note)}">${esc(p.label)} ${EN ? p.value / 1e6 + 'M' : p.value / 10000 + '萬'}</button>`).join('');
     }
 
     function retireHeadline(r) {
@@ -1596,7 +1642,7 @@
       syncView('retire');
       $('#r-house-body').classList.toggle('dim', !s.house);
       const wr = num(s.wr);
-      $('#r-wr-help').textContent = wr > 0 ? `提領率 ${fmtPct(wr, 1)} → 生活費本金 = 年開銷 × ${trimNum(100 / wr, 1)}（= 月開銷 × ${trimNum(1200 / wr, 0)}）` : '';
+      $('#r-wr-help').textContent = wr > 0 ? T(`提領率 ${fmtPct(wr, 1)} → 生活費本金 = 年開銷 × ${trimNum(100 / wr, 1)}（= 月開銷 × ${trimNum(1200 / wr, 0)}）`, `${fmtPct(wr, 1)} withdrawal → living fund = yearly costs × ${trimNum(100 / wr, 1)} (= monthly costs × ${trimNum(1200 / wr, 0)})`) : '';
       $('#r-wr-help').classList.toggle('warn', wr > 4.5);
       const preset = HOUSE_PRESETS.find(p => p.value === num(s.housePrice));
       $('#r-house-note').textContent = preset ? preset.note : '';
@@ -1605,7 +1651,7 @@
       last.retire = r;
       const hero = $('#retire-hero');
       if (r.error) {
-        setHero(hero, { error: true, label: '無法達成', value: '再調整看看', sub: r.error, note: r.hint || null });
+        setHero(hero, { error: true, label: T('無法達成', 'Not reachable'), value: T('再調整看看', 'Try adjusting'), sub: r.error, note: r.hint || null });
         drawChart($('#retire-chart'), { xs: [], empty: r.error });
         $('#retire-breakdown').innerHTML = ''; $('#retire-table').innerHTML = ''; $('#retire-scen').innerHTML = '';
         return;
@@ -1613,44 +1659,44 @@
       const todayTotal = r.deflate(r.tg.total, r.years);
       let label, value, sub;
       if (r.mode === 'age') {
-        label = '預計可以退休的年齡'; value = r.M === 0 ? '現在' : fmtAge(r.retireAge);
-        sub = r.M === 0 ? '已達成退休目標' : `再 ${fmtDur(r.years)} · 每月投入 ${fmtWan(r.pay)}`;
+        label = T('預計可以退休的年齡', 'You could retire at'); value = r.M === 0 ? T('現在', 'Now') : fmtAge(r.retireAge);
+        sub = r.M === 0 ? T('已達成退休目標', 'Goal already reached') : T(`再 ${fmtDur(r.years)} · 每月投入 ${fmtWan(r.pay)}`, `In ${fmtDur(r.years)} · investing ${fmtWan(r.pay)} a month`);
       } else if (r.mode === 'pmt') {
-        label = `想在 ${fmtAge(r.retireAge)}退休，每月需投入`; value = fmtMoney(r.pay);
-        sub = `持續 ${fmtDur(r.years)}` + (num(s.growth) ? `，每年調升 ${fmtPct(num(s.growth), 1)}` : '');
+        label = T(`想在 ${fmtAge(r.retireAge)}退休，每月需投入`, `To retire at ${fmtAge(r.retireAge)}, invest monthly`); value = fmtMoney(r.pay);
+        sub = T(`持續 ${fmtDur(r.years)}`, `For ${fmtDur(r.years)}`) + (num(s.growth) ? T(`，每年調升 ${fmtPct(num(s.growth), 1)}`, `, rising ${fmtPct(num(s.growth), 1)} a year`) : '');
       } else {
-        label = `想在 ${fmtAge(r.retireAge)}退休，現在需要`; value = fmtMoney(r.P);
-        sub = `≈ ${fmtWan(r.P)} · 搭配每月投入 ${fmtWan(r.pay)}`;
+        label = T(`想在 ${fmtAge(r.retireAge)}退休，現在需要`, `To retire at ${fmtAge(r.retireAge)}, you need now`); value = fmtMoney(r.P);
+        sub = T(`≈ ${fmtWan(r.P)} · 搭配每月投入 ${fmtWan(r.pay)}`, `≈ ${fmtWan(r.P)} · plus ${fmtWan(r.pay)} a month`);
       }
       const endAge = r.depM != null ? r.retireAge + r.depM / 12 : 100;
       const stats = [
-        ['退休時需要', fmtWan(r.tg.total), `≈ 今日 ${fmtWan(todayTotal)}`],
-        ['退休時月開銷', fmtWan(r.tg.monthlyAtRet), `今日 ${fmtWan(r.netExp)}`],
-        r.depM != null ? ['資產可撐到', fmtAge(endAge), '之後耗盡'] : ['100 歲時仍有', fmtWan(r.post[r.post.length - 1]), `≈ 今日 ${fmtWan(r.deflate(r.post[r.post.length - 1], 100 - r.age))}`]
+        [T('退休時需要', 'Needed at retirement'), fmtWan(r.tg.total), T(`≈ 今日 ${fmtWan(todayTotal)}`, `≈ ${fmtWan(todayTotal)} today`)],
+        [T('退休時月開銷', 'Monthly costs then'), fmtWan(r.tg.monthlyAtRet), T(`今日 ${fmtWan(r.netExp)}`, `${fmtWan(r.netExp)} today`)],
+        r.depM != null ? [T('資產可撐到', 'Money lasts until'), fmtAge(endAge), T('之後耗盡', 'then runs out')] : [T('100 歲時仍有', 'Left at age 100'), fmtWan(r.post[r.post.length - 1]), T(`≈ 今日 ${fmtWan(r.deflate(r.post[r.post.length - 1], 100 - r.age))}`, `≈ ${fmtWan(r.deflate(r.post[r.post.length - 1], 100 - r.age))} today`)]
       ];
       let note = r.note;
-      if (r.depM != null) note = (note ? note + '\n' : '') + `⚠ 以退休後報酬 ${fmtPct(num(s.postRate), 1)}、通膨 ${fmtPct(num(s.inflation), 1)} 模擬，資產約在 ${fmtAge(endAge)}耗盡；可降低提領率或提高退休後報酬假設。`;
+      if (r.depM != null) note = (note ? note + '\n' : '') + T(`⚠ 以退休後報酬 ${fmtPct(num(s.postRate), 1)}、通膨 ${fmtPct(num(s.inflation), 1)} 模擬，資產約在 ${fmtAge(endAge)}耗盡；可降低提領率或提高退休後報酬假設。`, `⚠ With ${fmtPct(num(s.postRate), 1)} return after retirement and ${fmtPct(num(s.inflation), 1)} inflation, the money runs out around ${fmtAge(endAge)}; try a lower withdrawal rate or a higher post-retirement return.`);
       setHero(hero, { label, value, sub, stats, note, good: !!r.note && r.depM == null });
 
       // Scenarios: rate −2 / base / +2.
       const rates = [r.rate - 2, r.rate, r.rate + 2].map(x => Math.max(0, x));
       $('#retire-scen').innerHTML = rates.map((rt, j) => {
         const rr = j === 1 ? r : retireCompute(s, rt);
-        const v = rr.error ? '無法達成' : (rr.mode === 'age' && rr.M === 0 ? '現在' : retireHeadline(rr));
-        const sub2 = rr.error ? '' : (rr.mode === 'age' ? `需 ${fmtWan(rr.tg.total)}` : `退休時需 ${fmtWan(rr.tg.total)}`);
-        return `<div class="scenario${j === 1 ? ' base' : ''}"><div class="k">報酬 ${fmtPct(rt, 1)}${j === 1 ? '（目前）' : ''}</div><div class="v">${esc(v)}</div><div class="s">${esc(sub2)}</div></div>`;
+        const v = rr.error ? T('無法達成', 'Not reachable') : (rr.mode === 'age' && rr.M === 0 ? T('現在', 'Now') : retireHeadline(rr));
+        const sub2 = rr.error ? '' : (rr.mode === 'age' ? T(`需 ${fmtWan(rr.tg.total)}`, `needs ${fmtWan(rr.tg.total)}`) : T(`退休時需 ${fmtWan(rr.tg.total)}`, `needs ${fmtWan(rr.tg.total)} at retirement`));
+        return `<div class="scenario${j === 1 ? ' base' : ''}"><div class="k">${T('報酬', 'Return')} ${fmtPct(rt, 1)}${j === 1 ? T('（目前）', ' (current)') : ''}</div><div class="v">${esc(v)}</div><div class="s">${esc(sub2)}</div></div>`;
       }).join('');
 
       // Breakdown.
       const yrs = r.years, inflP = fmtPct(num(s.inflation), 1);
       const rows = [
-        ['每月淨開銷（今日）', `${fmt(num(s.expense))} − 其他收入 ${fmt(num(s.otherIncome))}`, fmtMoney(r.netExp)],
-        ['退休時月開銷', `通膨 ${inflP}，${fmtDur(yrs)}後`, fmtMoney(r.tg.monthlyAtRet)],
-        ['生活費本金', `月開銷 × 12 ÷ ${fmtPct(r.wr * 100, 1)}`, fmtWan(r.tg.living)]
+        [T('每月淨開銷（今日）', 'Net monthly costs (today)'), T(`${fmt(num(s.expense))} − 其他收入 ${fmt(num(s.otherIncome))}`, `${fmt(num(s.expense))} − other income ${fmt(num(s.otherIncome))}`), fmtMoney(r.netExp)],
+        [T('退休時月開銷', 'Monthly costs at retirement'), T(`通膨 ${inflP}，${fmtDur(yrs)}後`, `${inflP} inflation, in ${fmtDur(yrs)}`), fmtMoney(r.tg.monthlyAtRet)],
+        [T('生活費本金', 'Living fund'), T(`月開銷 × 12 ÷ ${fmtPct(r.wr * 100, 1)}`, `monthly costs × 12 ÷ ${fmtPct(r.wr * 100, 1)}`), fmtWan(r.tg.living)]
       ];
-      if (s.house) rows.push(['買房', `${fmtWan(r.houseToday)}，年漲 ${fmtPct(num(s.houseGrowth), 1)}`, fmtWan(r.tg.house)]);
+      if (s.house) rows.push([T('買房', 'Home'), T(`${fmtWan(r.houseToday)}，年漲 ${fmtPct(num(s.houseGrowth), 1)}`, `${fmtWan(r.houseToday)} today, +${fmtPct(num(s.houseGrowth), 1)} a year`), fmtWan(r.tg.house)]);
       $('#retire-breakdown').innerHTML = rows.map(x => `<div class="bd-row"><span class="l">${esc(x[0])}<small>${esc(x[1])}</small></span><span class="r">${esc(x[2])}</span></div>`).join('') +
-        `<div class="bd-row total"><span class="l">退休總目標<small>相當於今日 ${esc(fmtWan(todayTotal))}</small></span><span class="r">${esc(fmtWan(r.tg.total))}</span></div>`;
+        `<div class="bd-row total"><span class="l">${T('退休總目標', 'Total retirement goal')}<small>${T('相當於今日', '≈ today')} ${esc(fmtWan(todayTotal))}</small></span><span class="r">${esc(fmtWan(r.tg.total))}</span></div>`;
 
       // Chart across the lifetime.
       const xs = [], assets = [], target = [];
@@ -1660,13 +1706,13 @@
       for (let m = 12; m < r.post.length; m += 12) { xs.push(r.retireAge + m / 12); assets.push(r.post[m]); target.push(null); }
       if ((r.post.length - 1) % 12 !== 0 && r.post.length > 1) { xs.push(r.retireAge + (r.post.length - 1) / 12); assets.push(r.post[r.post.length - 1]); target.push(null); }
       drawChart($('#retire-chart'), {
-        xs, aria: '一生資產走勢圖',
-        markers: [{ x: r.retireAge, label: '退休' }],
+        xs, aria: T('一生資產走勢圖', 'Lifetime balance chart'),
+        markers: [{ x: r.retireAge, label: T('退休', 'Retire') }],
         series: [
-          { name: '總資產', ys: assets, color: cssVar('--c-total'), area: true },
-          { name: '退休目標（含通膨）', ys: target, color: cssVar('--c-target'), dash: true, width: 2 }
+          { name: T('總資產', 'Balance'), ys: assets, color: cssVar('--c-total'), area: true },
+          { name: T('退休目標（含通膨）', 'Goal (with inflation)'), ys: target, color: cssVar('--c-target'), dash: true, width: 2 }
         ],
-        xFmt: (v) => trimNum(v, 0) + '歲', tipTitle: (v) => fmtAge(v) + (v >= r.retireAge - 1e-9 && r.M > 0 ? (v === r.retireAge ? '（退休）' : '（退休後）') : '')
+        xFmt: (v) => trimNum(v, 0) + T('歲', ''), tipTitle: (v) => fmtAge(v) + (v >= r.retireAge - 1e-9 && r.M > 0 ? (v === r.retireAge ? T('（退休）', ' (retire)') : T('（退休後）', ' (retired)')) : '')
       });
 
       // Year-by-year table.
@@ -1675,16 +1721,16 @@
       for (let y = 1; y <= accY; y++) {
         const m1 = (y - 1) * 12, m2 = Math.min(y * 12, r.M);
         let contrib = 0; for (let m = m1 + 1; m <= m2; m++) contrib += r.acc.pays[m];
-        trows.push([String(Math.floor(r.age + y - 1)) + ' 歲', '累積', { v: signed(contrib) }, fmt(r.acc.arr[m2]), fmt(r.targetAt(m2).total)]);
+        trows.push([String(Math.floor(r.age + y - 1)) + T(' 歲', ''), T('累積', 'Saving'), { v: signed(contrib) }, fmt(r.acc.arr[m2]), fmt(r.targetAt(m2).total)]);
       }
       hl = trows.length;
-      trows.push([fmtAge(r.retireAge), '退休', { v: s.house && r.tg.house ? '買房 −' + fmt(r.tg.house) : '—', cls: s.house ? 'neg' : '' }, fmt(r.post[0]), '—']);
+      trows.push([fmtAge(r.retireAge), T('退休', 'Retire'), { v: s.house && r.tg.house ? T('買房 −', 'Home −') + fmt(r.tg.house) : '—', cls: s.house ? 'neg' : '' }, fmt(r.post[0]), '—']);
       for (let y = 1; y * 12 <= r.post.length - 1; y++) {
         let wd = 0; for (let m = (y - 1) * 12 + 1; m <= y * 12; m++) wd += r.wds[m];
-        trows.push([String(Math.floor(r.retireAge + y - 1)) + ' 歲', '提領', { v: '−' + fmt(wd), cls: 'neg' }, fmt(r.post[y * 12]), '—']);
+        trows.push([String(Math.floor(r.retireAge + y - 1)) + T(' 歲', ''), T('提領', 'Withdraw'), { v: '−' + fmt(wd), cls: 'neg' }, fmt(r.post[y * 12]), '—']);
         if (r.post[y * 12] <= 0) break;
       }
-      $('#retire-table').innerHTML = table(['年齡', '階段', '本年投入／提領', '年末資產', '退休目標'], trows, hl);
+      $('#retire-table').innerHTML = table(EN ? ['Age', 'Phase', 'In / out this year', 'Ending balance', 'Goal'] : ['年齡', '階段', '本年投入／提領', '年末資產', '退休目標'], trows, hl);
     }
 
     /* ================= App shell ================= */
@@ -1759,13 +1805,20 @@
       const v = state.view;
       const payload = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(state[v])))));
       const url = location.href.split('#')[0] + '#' + v + '=' + payload;
-      const title = { calc: '複利計算', multi: '多階段計畫', retire: '退休規劃' }[v];
+      const title = EN ? { calc: 'Compound', multi: 'Multi-stage plan', retire: 'Retirement' }[v] : { calc: '複利計算', multi: '多階段計畫', retire: '退休規劃' }[v];
       if (navigator.share && matchMedia('(pointer: coarse)').matches) {
-        navigator.share({ title: title + '｜複利計算機', text: $('#' + v + '-hero').dataset.copy, url }).catch(() => {});
-      } else copyText(url).then(ok => toast(ok ? '已複製分享連結（含目前輸入）' : '無法複製連結'));
+        navigator.share({ title: title + T('｜複利計算機', ' | Compound Calculator'), text: $('#' + v + '-hero').dataset.copy, url }).catch(() => {});
+      } else copyText(url).then(ok => toast(ok ? T('已複製分享連結（含目前輸入）', 'Share link copied (includes your inputs)') : T('無法複製連結', 'Couldn’t copy the link')));
     });
 
     /* ================= Init ================= */
+    translateStatic();
+    $('#langBtn').textContent = EN ? '中文' : 'EN';
+    $('#langBtn').addEventListener('click', () => {
+      const u = new URL(location.href);
+      u.searchParams.set('lang', EN ? 'zh' : 'en');
+      location.href = u.toString();
+    });
     VIEWS.forEach(v => initHero($('#' + v + '-hero')));
     initHousePresets();
     renderStages();
