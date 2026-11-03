@@ -1,0 +1,20 @@
+{
+  "name": "複利與退休計算機",
+  "short_name": "複利計算",
+  "description": "複利、年化報酬率（IRR）、多階段投資與退休規劃計算機",
+  "lang": "zh-TW",
+  "start_url": "./annual_return_calculator_v6.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5fa",
+  "theme_color": "#2f6bff",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "複利計算", "url": "./annual_return_calculator_v6.html#calc" },
+    { "name": "退休規劃", "url": "./annual_return_calculator_v6.html#retire" }
+  ]
+}

@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <title>年化報酬率計算機 — 版本總覽</title>
   <style>
     * { box-sizing: border-box; }
@@ -70,13 +73,22 @@
   <p class="lang"><a href="README.md">README</a> · <a href="README.zh-TW.md">說明文件</a> · <a href="annual_return_calculator_en_v1.html">English UI</a></p>
 
   <h1>年化報酬率計算機</h1>
-  <p class="subtitle">選擇版本開始使用。建議一般複利／IRR 用 v4；退休目標與 4% 法則用 v5。</p>
+  <p class="subtitle">建議直接使用 <strong>v6</strong>：複利／IRR、多階段、退休規劃整合在同一個 App，可加入手機主畫面離線使用。</p>
 
   <div class="card-list">
+    <a class="card" href="annual_return_calculator_v6.html">
+      <div class="card-header">
+        <h2>v6 複利與退休計算機</h2>
+        <span class="badge badge-rec">建議</span>
+        <span class="badge badge-new">App</span>
+      </div>
+      <p>即時計算、成長圖表、逐年明細；有效年化報酬、通膨與購買力、退休後提領模擬、報酬率情境比較；深色模式、分享連結、可安裝 PWA。</p>
+    </a>
+
     <a class="card" href="annual_return_calculator_v4.html">
       <div class="card-header">
         <h2>v4 年化報酬率計算機</h2>
-        <span class="badge badge-rec">建議</span>
+        <span class="badge badge-legacy">前一版</span>
       </div>
       <p>複利／IRR、多階段。可算最終金額、年化報酬率、本金、時間、定期定額。</p>
     </a>
@@ -84,7 +96,7 @@
     <a class="card" href="annual_return_calculator_v5.html">
       <div class="card-header">
         <h2>v5 退休規劃計算機</h2>
-        <span class="badge badge-new">新</span>
+        <span class="badge badge-legacy">前一版</span>
       </div>
       <p>4% 法則 + 台北市買房目標。概算幾年能退休、每月要存多少；可連結 v4 細調。</p>
     </a>
