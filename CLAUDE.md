@@ -24,6 +24,7 @@
 
 - 純前端 HTML 計算機，部署在 GitHub Pages：<https://boson316.github.io/niu/>，不需 build。
 - **目前主力是 `annual_return_calculator_v6.html`**（單檔 App：複利計算 `#calc`／多階段 `#multi`／退休規劃 `#retire`，PWA）。v1–v5 保留不動，只做必要的連結修正。
+- v6 支援中英文：`?lang=en|zh`（會記住選擇；沒指定時看瀏覽器語言）。介面固定文字的英文在 `STATIC_EN` 對照表，程式產生的文字用 `T('中文', 'English')`。**新增或修改任何文字時，中英文都要一起改**；英文版金額單位用 TWD／K／M。
 - PWA 檔案：`manifest.webmanifest`、`sw.js`、`icon*.png`、`icon.svg`。改動 v6 後把 `sw.js` 的 `CACHE` 版本號 +1。
 - 計算慣例：報酬率預設為**有效年化**（月報酬 = (1+r)^(1/12) − 1）；退休規劃含通膨調整。改公式後要驗證：FV 與封閉公式一致、各反推模式能回推原輸入（瀏覽器 console 有 `window.NiuCalc` 可測）。
 - 配色：沉穩的藍（`--accent: #3b5fc4`），避免高飽和漸層。
